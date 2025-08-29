@@ -9,23 +9,25 @@ Python tool using Google's Gemini API to uncover the location where photos were 
 
 ```bash
 pip install geointel
+```
 
 Usage
 
 Command Line Interface
-
+```
 geointel --image path/to/your/image.jpg
+```
 
 Available Arguments
 
 Argument	Description
-
+```
 --image	Required. Path to the image file or URL to analyze
 --context	Additional context information about the image
 --guess	Your guess of where the image might have been taken
 --output	Output file path to save the results (JSON format)
 --api-key	Custom Gemini API key
-
+```
 
 Examples
 
@@ -66,7 +68,7 @@ GeoIntel uses Google's Gemini API. You can:
 Get your Gemini API key from Google AI Studio.
 
 Python Library
-
+```
 from geointel import GeoIntel
 
 # Initialize GeoIntel
@@ -89,6 +91,7 @@ else:
             lat = location["coordinates"]["latitude"]
             lng = location["coordinates"]["longitude"]
             maps_url = f"https://www.google.com/maps?q={lat},{lng}"
+```
 
 See the examples directory for more detailed usage examples.
 

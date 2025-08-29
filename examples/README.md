@@ -1,6 +1,6 @@
-# GeoSpy Library Examples
+# GeoIntel Library Examples
 
-This directory contains simple examples showing how to use GeoSpy as a library.
+This directory contains simple examples showing how to use GeoIntel as a library.
 
 ## Setup
 
@@ -20,16 +20,16 @@ This directory contains simple examples showing how to use GeoSpy as a library.
 
 ## Library Usage
 
-GeoSpy returns a JSON object that you can use in your application. Here's how to use it:
+GeoIntel returns a JSON object that you can use in your application. Here's how to use it:
 
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
 # Initialize
-geospy = GeoSpy()  # Uses GEMINI_API_KEY from environment
+geointel = GeoIntel()  # Uses GEMINI_API_KEY from environment
 
 # Analyze an image and get the result JSON
-result = geospy.locate(image_path="your_image.jpg")
+result = geointel.locate(image_path="your_image.jpg")
 
 # The result is a JSON object you can work with
 if "error" in result:
@@ -80,22 +80,22 @@ with open("result.json", "w") as f:
 python library_usage.py
 ```
 
-This will analyze an image and save the results to `geospy_result.json` without printing to the console.
+This will analyze an image and save the results to `geointel_result.json` without printing to the console.
 
 ## Examples
 
 ### Basic Library Usage
 
-The `library_usage.py` file shows the simplest way to use GeoSpy:
+The `library_usage.py` file shows the simplest way to use GeoIntel:
 
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
 # Initialize
-geospy = GeoSpy()  # Uses GEMINI_API_KEY from environment
+geointel = GeoIntel()  # Uses GEMINI_API_KEY from environment
 
 # Analyze an image
-result = geospy.locate(image_path="your_image.jpg")
+result = geointel.locate(image_path="your_image.jpg")
 
 # Print results
 print(result)
@@ -112,10 +112,10 @@ The `simple_api.py` file shows a minimal Flask API:
 
 ```python
 from flask import Flask, request, jsonify
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
 app = Flask(__name__)
-geospy = GeoSpy()
+geointel = GeoIntel()
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -143,27 +143,27 @@ curl -X POST http://localhost:5000/analyze \
 
 ## Using in Your Projects
 
-To use GeoSpy in your own projects:
+To use GeoIntel in your own projects:
 
 1. Install the package:
    ```bash
-   pip install geospyer
+   pip install geointel
    ```
 
 2. Import and initialize:
    ```python
-   from geospyer import GeoSpy
+   from geointel import GeoIntel
    
    # Initialize with API key
-   geospy = GeoSpy(api_key="your-api-key-here")
-   
+   geointel = GeoIntel(api_key="your-api-key-here")
+
    # Or use from environment variable
-   # geospy = GeoSpy()
+   # geointel = GeoIntel()
    ```
 
 3. Analyze images:
    ```python
-   results = geospy.locate(
+   results = geointel.locate(
        image_path="path/to/image.jpg",
        context_info="Optional context",
        location_guess="Optional guess"

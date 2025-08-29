@@ -1,20 +1,22 @@
 import argparse
 import json
-from geospyer import GeoSpy
+from geointel import GeoIntel
 import sys
 
 
 def banner():
     font = """
-█▀▀▀ █▀▀ █▀▀█ █▀▀ █▀▀█ █──█ 
-█─▀█ █▀▀ █──█ ▀▀█ █──█ █▄▄█ 
-▀▀▀▀ ▀▀▀ ▀▀▀▀ ▀▀▀ █▀▀▀ ▄▄▄█
+                 _      __      __
+  ___ ____ ___  (_)__  / /____ / /
+ / _ `/ -_) _ \/ / _ \/ __/ -_) / 
+ \_, /\__/\___/_/_//_/\__/\__/_/  
+/___/                             
 ----------------------------------------
 AI powered geo-location tool
 Uncover the location of photos using AI
 ----------------------------------------
 # Disclaimer: Experimental use only. Not for production.
-# Github: https://github.com/atiilla/geospy
+# Github: https://github.com/atiilla/geointel
 """
     print(font)
 
@@ -22,8 +24,8 @@ Uncover the location of photos using AI
 def main():
     banner()
     parser = argparse.ArgumentParser(
-        prog="geospyer",
-        description="GeoSpy - AI powered geolocation tool"
+        prog="geointel",
+        description="GeoIntel - AI powered geolocation tool"
     )
     parser.add_argument("--image", type=str, help="Image path or URL to analyze")
     parser.add_argument("--context", type=str, help="Additional context information about the image")
@@ -33,8 +35,8 @@ def main():
     args = parser.parse_args()
 
     if args.image:
-        # Initialize GeoSpy with optional API key
-        geospy = GeoSpy(api_key=args.api_key)
+        # Initialize GeoIntel with optional API key
+        geointel = GeoIntel(api_key=args.api_key)
         
         # Get results
         print(f"Analyzing image: {args.image}")
@@ -43,7 +45,7 @@ def main():
         print("This may take a few moments...")
         
         try:
-            results = geospy.locate(
+            results = geointel.locate(
                 image_path=args.image,
                 context_info=args.context,
                 location_guess=args.guess

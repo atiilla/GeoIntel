@@ -7,6 +7,6 @@ __pycache__
 build
 build/*
 dist
-geospy.egg-info
+geointel.egg-info
 venv
-geospy.gif
+geointel.gif

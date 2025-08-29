@@ -5,7 +5,7 @@ import os
 from typing import Dict, Any, Optional, List, Union
 from urllib.parse import urlparse
 
-class GeoSpy:
+class GeoIntel:
     def __init__(self, api_key: Optional[str] = None):
         self.gemini_api_key = api_key or os.environ.get("GEMINI_API_KEY", "your_api_key_here")
         self.gemini_api_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite-001:generateContent"

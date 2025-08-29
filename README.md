@@ -18,6 +18,8 @@ Command Line Interface
 geointel --image path/to/your/image.jpg
 ```
 
+[![asciicast](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s.svg)](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s)
+
 Available Arguments
 
 Argument	Description
@@ -153,4 +155,5 @@ License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-Acknowledgments
+
+![Star History Chart](https://api.star-history.com/svg?repos=atiilla/geointel&type=Date)

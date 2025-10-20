@@ -29,24 +29,27 @@ def encode_image_to_base64(image_path: str) -> Tuple[str, str]:
             response.raise_for_status()  # Raise an exception for HTTP errors
             
             # Try to get MIME type from Content-Type header
-            mime_type = response.headers.get('content-type', 'image/jpeg')
+            mime_type = response.headers.get('content-type', '').strip()
             # Handle cases where content-type includes charset or other parameters
             if ';' in mime_type:
                 mime_type = mime_type.split(';')[0].strip()
             
-            # Fallback to image/jpeg if MIME type is not recognized
-            if not mime_type.startswith('image/'):
-                mime_type = 'image/jpeg'
+            # Only accept real image/* payloads
+            if not mime_type or not mime_type.startswith('image/'):
+                raise ValueError(f"URL does not return an image content-type: {mime_type or 'unknown'}")
             
             return base64.b64encode(response.content).decode('utf-8'), mime_type
-        except requests.exceptions.ConnectionError:
-            raise ValueError(f"Failed to connect to URL: {image_path}. Please check your internet connection.")
+        except requests.exceptions.ConnectionError as e:
+            raise ValueError(f"Failed to connect to URL: {image_path}. Please check your internet connection.") from e
         except requests.exceptions.HTTPError as e:
-            raise ValueError(f"HTTP error when downloading image: {e}")
-        except requests.exceptions.Timeout:
-            raise ValueError(f"Request timed out when downloading image from URL: {image_path}")
+            raise ValueError("HTTP error when downloading image.") from e
+        except requests.exceptions.Timeout as e:
+            raise ValueError(f"Request timed out when downloading image from URL: {image_path}") from e
         except requests.exceptions.RequestException as e:
-            raise ValueError(f"Failed to download image from URL: {e}")
+            raise ValueError("Failed to download image from URL.") from e
+        except ValueError:
+            # Re-raise ValueError as-is (includes MIME type validation errors)
+            raise
     else:
         # Assume it's a local file path
         try:

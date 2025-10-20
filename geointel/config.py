@@ -33,19 +33,8 @@ DEFAULT_MIME_TYPE = 'image/jpeg'
 
 # HTTP Headers
 API_HEADERS = {
-    "accept": "*/*",
-    "accept-language": "en-US,en;q=0.6",
     "content-type": "application/json",
-    "priority": "u=1, i",
-    "sec-ch-ua": "\"Brave\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "sec-gpc": "1",
-    "Referer": "https://googleapis.com/",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+    "User-Agent": "GeoIntel/1.0 (Python HTTP Client)"
 }
 
 # Color Codes for CLI

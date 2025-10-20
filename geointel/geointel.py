@@ -171,7 +171,7 @@ class GeoIntel:
                 raise ImageProcessingError(
                     f"Permission denied when accessing image file: {image_path}"
                 ) from e
-            except Exception as e:
+            except OSError as e:
                 raise ImageProcessingError(
                     f"Failed to read image file: {str(e)}"
                 ) from e
@@ -231,7 +231,7 @@ class GeoIntel:
         try:
             parsed_result = json.loads(json_string)
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {raw_text[:200]}...")
+            logger.exception(f"Failed to parse JSON response: {raw_text[:200]}...")
             raise APIError(
                 f"Failed to parse API response as JSON: {e}"
             ) from e
@@ -295,9 +295,12 @@ class GeoIntel:
         # Convert image to base64
         try:
             image_base64, mime_type = self.encode_image_to_base64(image_path)
-        except Exception as e:
-            logger.error(f"Image processing failed: {e}")
+        except ImageProcessingError as e:
+            logger.exception(f"Image processing failed: {e}")
             return {"error": f"Failed to process image: {str(e)}"}
+        except FileNotFoundError as e:
+            logger.exception(f"Image file not found: {e}")
+            return {"error": f"Image file not found: {image_path}"}
         
         # Build the prompt
         prompt_text = build_prompt(context_info, location_guess)
@@ -331,8 +334,8 @@ class GeoIntel:
         logger.debug("Sending request to Gemini API")
         try:
             response = requests.post(
-                f"{self.gemini_api_url}?key={self.gemini_api_key}",
-                headers=API_HEADERS,
+                self.gemini_api_url,
+                headers={**API_HEADERS, "X-Goog-Api-Key": self.gemini_api_key},
                 json=request_body,
                 timeout=REQUEST_TIMEOUT
             )
@@ -346,7 +349,11 @@ class GeoIntel:
                     "status_code": response.status_code
                 }
             
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError as e:
+                logger.exception("API returned non-JSON response")
+                return {"error": "Invalid JSON in API response", "exception": str(e)}
             logger.debug("Successfully received API response")
             
             # Parse and validate the response
@@ -376,7 +383,7 @@ class GeoIntel:
                 "exception": str(e)
             }
         except Exception as e:
-            logger.error(f"Unexpected error during API communication: {e}")
+            logger.exception("Unexpected error during API communication")
             return {
                 "error": "An unexpected error occurred",
                 "exception": str(e)

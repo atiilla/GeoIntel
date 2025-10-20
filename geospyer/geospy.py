@@ -1,16 +1,108 @@
+"""
+GeoSpy - AI-powered geolocation analysis using Gemini API.
+
+This module provides functionality to analyze images and identify their likely
+geographic locations using Google's Gemini AI model.
+"""
+
 import json
-import requests
-import base64
+import logging
+import mimetypes
 import os
-from typing import Dict, Any, Optional, List, Union
+import base64
+from pathlib import Path
+from typing import Dict, Any, Optional, List, Tuple
 from urllib.parse import urlparse
 
+import requests
+
+from .config import (
+    GEMINI_API_URL,
+    DEFAULT_API_KEY_ENV,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    REQUEST_TIMEOUT,
+    IMAGE_DOWNLOAD_TIMEOUT,
+    MIME_TYPES,
+    DEFAULT_MIME_TYPE,
+    API_HEADERS,
+    VALID_CONFIDENCE_LEVELS,
+    CONFIDENCE_MEDIUM,
+)
+from .prompts import build_prompt
+from .exceptions import GeoSpyError, APIError, ImageProcessingError
+from .utils import sanitize_api_key
+
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
 class GeoSpy:
-    def __init__(self, api_key: Optional[str] = None):
-        self.gemini_api_key = api_key or os.environ.get("GEMINI_API_KEY", "your_api_key_here")
-        self.gemini_api_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite-001:generateContent"
+    """
+    GeoSpy client for analyzing images and identifying geographic locations.
+    
+    This class provides an interface to Google's Gemini AI model for
+    geolocation analysis of images.
+    
+    Attributes:
+        gemini_api_key (str): API key for Gemini service
+        gemini_api_url (str): URL endpoint for Gemini API
         
-    def encode_image_to_base64(self, image_path: str) -> str:
+    Example:
+        >>> geospy = GeoSpy(api_key="your_api_key")
+        >>> results = geospy.locate("path/to/image.jpg")
+        >>> print(results["locations"][0]["city"])
+    """
+    
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize GeoSpy client.
+        
+        Args:
+            api_key: Gemini API key. If not provided, will look for
+                    GEMINI_API_KEY environment variable.
+                    
+        Raises:
+            ValueError: If no API key is provided or found in environment
+        """
+        self.gemini_api_key = api_key or os.environ.get(DEFAULT_API_KEY_ENV)
+        
+        if not self.gemini_api_key or self.gemini_api_key == "your_api_key_here":
+            raise ValueError(
+                f"API key not provided. Please set {DEFAULT_API_KEY_ENV} "
+                "environment variable or pass api_key parameter."
+            )
+            
+        self.gemini_api_url = GEMINI_API_URL
+        logger.info(f"GeoSpy client initialized (API key: {sanitize_api_key(self.gemini_api_key)})")
+        
+    def _detect_mime_type(self, image_path: str) -> str:
+        """
+        Detect MIME type of an image file.
+        
+        Args:
+            image_path: Path to the image file
+            
+        Returns:
+            MIME type string (e.g., 'image/jpeg')
+        """
+        # Try to get extension from path
+        ext = Path(image_path).suffix.lower()
+        mime_type = MIME_TYPES.get(ext, DEFAULT_MIME_TYPE)
+        
+        # Fall back to mimetypes module if not in our map
+        if mime_type == DEFAULT_MIME_TYPE and ext not in MIME_TYPES:
+            guessed_type = mimetypes.guess_type(image_path)[0]
+            if guessed_type and guessed_type.startswith('image/'):
+                mime_type = guessed_type
+        
+        logger.debug(f"Detected MIME type '{mime_type}' for {image_path}")
+        return mime_type
+    
+    def encode_image_to_base64(self, image_path: str) -> Tuple[str, str]:
         """
         Convert an image file to base64 encoding.
         Supports both local files and URLs.
@@ -19,38 +111,146 @@ class GeoSpy:
             image_path: Path to the image file or URL
             
         Returns:
-            Base64 encoded string of the image
+            Tuple of (base64_encoded_string, mime_type)
             
         Raises:
-            ValueError: If the image cannot be loaded or the URL is invalid
+            ImageProcessingError: If the image cannot be loaded
             FileNotFoundError: If the local image file doesn't exist
         """
+        logger.info(f"Encoding image: {image_path}")
+        
         # Check if the image_path is a URL
         parsed_url = urlparse(image_path)
         if parsed_url.scheme in ('http', 'https'):
             try:
-                response = requests.get(image_path, timeout=10)
-                response.raise_for_status()  # Raise an exception for HTTP errors
-                return base64.b64encode(response.content).decode('utf-8')
-            except requests.exceptions.ConnectionError:
-                raise ValueError(f"Failed to connect to URL: {image_path}. Please check your internet connection.")
+                response = requests.get(image_path, timeout=IMAGE_DOWNLOAD_TIMEOUT)
+                response.raise_for_status()
+                
+                # Detect MIME type from Content-Type header or URL
+                mime_type = response.headers.get('Content-Type', '').split(';')[0]
+                if not mime_type or not mime_type.startswith('image/'):
+                    mime_type = self._detect_mime_type(image_path)
+                
+                encoded = base64.b64encode(response.content).decode('utf-8')
+                logger.debug(f"Successfully encoded image from URL ({len(encoded)} chars)")
+                return encoded, mime_type
+                
+            except requests.exceptions.ConnectionError as e:
+                raise ImageProcessingError(
+                    f"Failed to connect to URL: {image_path}. "
+                    "Please check your internet connection."
+                ) from e
             except requests.exceptions.HTTPError as e:
-                raise ValueError(f"HTTP error when downloading image: {e}")
-            except requests.exceptions.Timeout:
-                raise ValueError(f"Request timed out when downloading image from URL: {image_path}")
+                raise ImageProcessingError(
+                    f"HTTP error when downloading image: {e}"
+                ) from e
+            except requests.exceptions.Timeout as e:
+                raise ImageProcessingError(
+                    f"Request timed out when downloading image from URL: {image_path}"
+                ) from e
             except requests.exceptions.RequestException as e:
-                raise ValueError(f"Failed to download image from URL: {e}")
+                raise ImageProcessingError(
+                    f"Failed to download image from URL: {e}"
+                ) from e
         else:
             # Assume it's a local file path
             try:
                 with open(image_path, "rb") as image_file:
-                    return base64.b64encode(image_file.read()).decode('utf-8')
-            except FileNotFoundError:
-                raise FileNotFoundError(f"Image file not found: {image_path}")
-            except PermissionError:
-                raise ValueError(f"Permission denied when accessing image file: {image_path}")
+                    content = image_file.read()
+                    encoded = base64.b64encode(content).decode('utf-8')
+                    mime_type = self._detect_mime_type(image_path)
+                    
+                logger.debug(f"Successfully encoded local image ({len(encoded)} chars)")
+                return encoded, mime_type
+                
+            except FileNotFoundError as e:
+                raise FileNotFoundError(
+                    f"Image file not found: {image_path}"
+                ) from e
+            except PermissionError as e:
+                raise ImageProcessingError(
+                    f"Permission denied when accessing image file: {image_path}"
+                ) from e
             except Exception as e:
-                raise ValueError(f"Failed to read image file: {str(e)}")
+                raise ImageProcessingError(
+                    f"Failed to read image file: {str(e)}"
+                ) from e
+    
+    def _validate_location_data(self, location: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate and normalize location data.
+        
+        Args:
+            location: Raw location data from API
+            
+        Returns:
+            Validated and normalized location data
+        """
+        validated = {
+            "country": location.get("country", "Unknown"),
+            "state": location.get("state", ""),
+            "city": location.get("city", "Unknown"),
+            "confidence": location.get("confidence", CONFIDENCE_MEDIUM),
+            "coordinates": location.get("coordinates", {"latitude": 0, "longitude": 0}),
+            "explanation": location.get("explanation", "")
+        }
+        
+        # Validate confidence level
+        if validated["confidence"] not in VALID_CONFIDENCE_LEVELS:
+            logger.warning(
+                f"Invalid confidence level '{validated['confidence']}', "
+                f"defaulting to {CONFIDENCE_MEDIUM}"
+            )
+            validated["confidence"] = CONFIDENCE_MEDIUM
+        
+        return validated
+    
+    def _parse_api_response(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse and validate API response.
+        
+        Args:
+            response_data: Raw API response
+            
+        Returns:
+            Parsed location data
+            
+        Raises:
+            APIError: If response cannot be parsed
+        """
+        try:
+            raw_text = response_data["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError) as e:
+            raise APIError(
+                f"Unexpected API response structure: {e}"
+            ) from e
+        
+        # Strip any markdown formatting and code blocks
+        json_string = raw_text.replace("```json", "").replace("```", "").strip()
+        
+        try:
+            parsed_result = json.loads(json_string)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {raw_text[:200]}...")
+            raise APIError(
+                f"Failed to parse API response as JSON: {e}"
+            ) from e
+        
+        # Handle potential single location format where the location is not in an array
+        if "city" in parsed_result and "locations" not in parsed_result:
+            parsed_result = {
+                "interpretation": parsed_result.get("interpretation", ""),
+                "locations": [self._validate_location_data(parsed_result)]
+            }
+        else:
+            # Validate each location
+            if "locations" in parsed_result:
+                parsed_result["locations"] = [
+                    self._validate_location_data(loc)
+                    for loc in parsed_result.get("locations", [])
+                ]
+        
+        return parsed_result
     
     def locate_with_gemini(self, 
                           image_path: str, 
@@ -90,86 +290,17 @@ class GeoSpy:
                 "exception": str        # Optional exception information
             }
         """
+        logger.info(f"Starting geolocation analysis for: {image_path}")
+        
         # Convert image to base64
         try:
-            image_base64 = self.encode_image_to_base64(image_path)
+            image_base64, mime_type = self.encode_image_to_base64(image_path)
         except Exception as e:
+            logger.error(f"Image processing failed: {e}")
             return {"error": f"Failed to process image: {str(e)}"}
         
         # Build the prompt
-        prompt_text = """You are a professional geolocation expert. You MUST respond with a valid JSON object in the following format:
-
-{
-  "interpretation": "A comprehensive analysis of the image, including:
-    - Architectural style and period
-    - Notable landmarks or distinctive features
-    - Natural environment and climate indicators
-    - Cultural elements (signage, vehicles, clothing, etc.)
-    - Any visible text or language
-    - Time period indicators (if any)",
-  "locations": [
-    {
-      "country": "Primary country name",
-      "state": "State/region/province name",
-      "city": "City name",
-      "confidence": "High/Medium/Low",
-      "coordinates": {
-        "latitude": 12.3456,
-        "longitude": 78.9012
-      },
-      "explanation": "Detailed reasoning for this location identification, including:
-        - Specific architectural features that match this location
-        - Environmental characteristics that support this location
-        - Cultural elements that indicate this region
-        - Any distinctive landmarks or features
-        - Supporting evidence from visible text or signage"
-    }
-  ]
-}
-
-IMPORTANT: 
-1. Your response MUST be a valid JSON object. Do not include any text before or after the JSON object.
-2. Do not include any markdown formatting or code blocks.
-3. The response should be parseable by JSON.parse().
-4. You can provide up to three possible locations if you are not completely confident about a single location.
-5. Order the locations by confidence level (highest to lowest).
-6. ALWAYS include approximate coordinates (latitude and longitude) for each location when possible.
-
-Consider these key aspects for accurate location identification:
-1. Architectural Analysis:
-   - Building styles and materials
-   - Roof types and construction methods
-   - Window and door designs
-   - Decorative elements and ornamentation
-
-2. Environmental Indicators:
-   - Vegetation types and patterns
-   - Climate indicators (snow, desert, tropical, etc.)
-   - Terrain and topography
-   - Water bodies or coastal features
-
-3. Cultural Context:
-   - Language of visible text
-   - Vehicle types and styles
-   - Clothing and fashion
-   - Street furniture and infrastructure
-   - Commercial signage and branding
-
-4. Time Period Indicators:
-   - Architectural period
-   - Vehicle models
-   - Fashion styles
-   - Technology visible"""
-
-        # Add additional context if provided
-        if context_info:
-            prompt_text += f"\n\nAdditional context provided by the user:\n{context_info}"
-        
-        # Add location guess if provided
-        if location_guess:
-            prompt_text += f"\n\nUser suggests this might be in: {location_guess}"
-        
-        prompt_text += "\n\nRemember: Your response must be a valid JSON object only. No additional text or formatting."
+        prompt_text = build_prompt(context_info, location_guess)
         
         # Prepare the request body
         request_body = {
@@ -181,7 +312,7 @@ Consider these key aspects for accurate location identification:
                         },
                         {
                             "inline_data": {
-                                "mime_type": "image/jpeg",
+                                "mime_type": mime_type,
                                 "data": image_base64
                             }
                         }
@@ -189,76 +320,65 @@ Consider these key aspects for accurate location identification:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.4,
-                "topK": 32,
-                "topP": 1,
-                "maxOutputTokens": 2048
+                "temperature": DEFAULT_TEMPERATURE,
+                "topK": DEFAULT_TOP_K,
+                "topP": DEFAULT_TOP_P,
+                "maxOutputTokens": DEFAULT_MAX_OUTPUT_TOKENS
             }
         }
         
         # Make the API request
-        headers = {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.6",
-            "content-type": "application/json",
-            "priority": "u=1, i",
-            "sec-ch-ua": "\"Brave\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "Referer": "https://googleapis.com/",
-            "Referrer-Policy": "strict-origin-when-cross-origin"
-        }
-        
+        logger.debug("Sending request to Gemini API")
         try:
             response = requests.post(
                 f"{self.gemini_api_url}?key={self.gemini_api_key}",
-                headers=headers,
-                json=request_body
+                headers=API_HEADERS,
+                json=request_body,
+                timeout=REQUEST_TIMEOUT
             )
             
             if response.status_code != 200:
-                print(f"Error: API request failed with status code {response.status_code}")
-                print(f"Response: {response.text}")
-                return {"error": "Failed to get response from Gemini API", "details": response.text}
+                error_msg = f"API request failed with status code {response.status_code}"
+                logger.error(f"{error_msg}: {response.text}")
+                return {
+                    "error": "Failed to get response from Gemini API",
+                    "details": response.text,
+                    "status_code": response.status_code
+                }
             
             data = response.json()
-            raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            logger.debug("Successfully received API response")
             
-            # Strip any markdown formatting and code blocks
-            json_string = raw_text.replace("```json", "").replace("```", "").strip()
-            
+            # Parse and validate the response
             try:
-                parsed_result = json.loads(json_string)
-                
-                # Handle potential single location format where the location is not in an array
-                if "city" in parsed_result and "locations" not in parsed_result:
-                    return {
-                        "interpretation": parsed_result.get("interpretation", ""),
-                        "locations": [{
-                            "country": parsed_result.get("country", ""),
-                            "state": parsed_result.get("state", ""),
-                            "city": parsed_result.get("city", ""),
-                            "confidence": parsed_result.get("confidence", "Medium"),
-                            "coordinates": parsed_result.get("coordinates", {"latitude": 0, "longitude": 0}),
-                            "explanation": parsed_result.get("explanation", "")
-                        }]
-                    }
-                
-                return parsed_result
-                
-            except json.JSONDecodeError as e:
+                result = self._parse_api_response(data)
+                logger.info(
+                    f"Analysis complete. Found {len(result.get('locations', []))} location(s)"
+                )
+                return result
+            except APIError as e:
+                logger.error(f"Failed to parse API response: {e}")
                 return {
                     "error": "Failed to parse API response",
-                    "rawResponse": raw_text,
                     "exception": str(e)
                 }
-        except Exception as e:
+                
+        except requests.exceptions.Timeout as e:
+            logger.error(f"API request timed out: {e}")
+            return {
+                "error": "Request to Gemini API timed out",
+                "exception": str(e)
+            }
+        except requests.exceptions.RequestException as e:
+            logger.error(f"API request failed: {e}")
             return {
                 "error": "Failed to communicate with Gemini API",
+                "exception": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error during API communication: {e}")
+            return {
+                "error": "An unexpected error occurred",
                 "exception": str(e)
             }
             

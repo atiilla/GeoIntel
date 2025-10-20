@@ -84,9 +84,9 @@ This will analyze an image and save the results to `geospy_result.json` without 
 
 ## Examples
 
-### Basic Library Usage
+### 1. Basic Library Usage (`library_usage.py`)
 
-The `library_usage.py` file shows the simplest way to use GeoSpy:
+The simplest way to use GeoSpy:
 
 ```python
 from geospyer import GeoSpy
@@ -106,9 +106,45 @@ Run the example with:
 python library_usage.py
 ```
 
-### Simple API
+### 2. Advanced Usage (`advanced_usage.py`) 🆕
 
-The `simple_api.py` file shows a minimal Flask API:
+Demonstrates best practices including:
+- ✅ Proper error handling with custom exceptions
+- ✅ Logging configuration
+- ✅ Batch processing multiple images
+- ✅ Working with results programmatically
+- ✅ Saving results to files
+
+```python
+from geospyer import GeoSpy, APIError, ImageProcessingError
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+try:
+    geospy = GeoSpy()
+    result = geospy.locate("image.jpg")
+    
+    # Process results
+    if "error" not in result:
+        for location in result["locations"]:
+            print(f"{location['city']}, {location['country']}")
+            
+except APIError as e:
+    print(f"API error: {e}")
+except ImageProcessingError as e:
+    print(f"Image processing error: {e}")
+```
+
+Run the example with:
+```bash
+python advanced_usage.py
+```
+
+### 3. Simple API
+
+The `simple_api.py` file shows a minimal Flask API (if available):
 
 ```python
 from flask import Flask, request, jsonify
@@ -141,6 +177,85 @@ curl -X POST http://localhost:5000/analyze \
   -d '{"image_url": "https://example.com/image.jpg"}'
 ```
 
+## Error Handling
+
+GeoSpy provides custom exceptions for different error scenarios:
+
+```python
+from geospyer import GeoSpy, GeoSpyError, APIError, ImageProcessingError, ValidationError
+
+try:
+    geospy = GeoSpy()
+    result = geospy.locate("image.jpg")
+    
+except APIError as e:
+    # Handle API-related errors (failed requests, invalid responses, etc.)
+    print(f"API error: {e}")
+    
+except ImageProcessingError as e:
+    # Handle image loading/processing errors
+    print(f"Image error: {e}")
+    
+except ValidationError as e:
+    # Handle validation errors
+    print(f"Validation error: {e}")
+    
+except GeoSpyError as e:
+    # Catch any other GeoSpy errors
+    print(f"GeoSpy error: {e}")
+    
+except ValueError as e:
+    # Handle configuration errors (e.g., missing API key)
+    print(f"Configuration error: {e}")
+```
+
+## Logging
+
+Enable logging to see detailed information:
+
+```python
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # or logging.DEBUG for more detail
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Now use GeoSpy (it will output logs)
+from geospyer import GeoSpy
+geospy = GeoSpy()
+```
+
+## Utility Functions 🆕
+
+GeoSpy includes helpful utility functions:
+
+```python
+from geospyer.utils import (
+    validate_coordinates,
+    format_location_string,
+    get_google_maps_url,
+    is_url,
+    sanitize_api_key
+)
+
+# Validate coordinates
+if validate_coordinates(40.7128, -74.0060):
+    print("Valid coordinates")
+
+# Format location
+location = format_location_string("New York", "NY", "USA")
+# Output: "New York, NY, USA"
+
+# Generate Google Maps URL
+maps_url = get_google_maps_url(40.7128, -74.0060)
+
+# Check if path is URL
+if is_url("https://example.com/image.jpg"):
+    print("It's a URL")
+```
+
 ## Using in Your Projects
 
 To use GeoSpy in your own projects:
@@ -168,4 +283,20 @@ To use GeoSpy in your own projects:
        context_info="Optional context",
        location_guess="Optional guess"
    )
-   ``` 
+   ```
+
+## Supported Image Formats
+
+- JPEG (`.jpg`, `.jpeg`)
+- PNG (`.png`)
+- GIF (`.gif`)
+- WebP (`.webp`)
+- BMP (`.bmp`)
+
+MIME types are automatically detected from file extensions and HTTP headers.
+
+## Additional Resources
+
+- 📖 **[Quick Reference Guide](../QUICK_REFERENCE.md)** - Quick start and common patterns
+- 📋 **[Improvements Documentation](../IMPROVEMENTS.md)** - Detailed code improvements
+- 📝 **[Changelog](../CHANGELOG.md)** - Version history and changes

@@ -1,21 +1,21 @@
 """
-Custom exceptions for GeoSpy.
+Custom exceptions for GeoIntel.
 
-This module defines all custom exception types used throughout the GeoSpy package.
+This module defines all custom exception types used throughout the GeoIntel package.
 """
 
 
-class GeoSpyError(Exception):
+class GeoIntelError(Exception):
     """
-    Base exception for all GeoSpy errors.
+    Base exception for all GeoIntel errors.
     
-    All custom GeoSpy exceptions inherit from this base class,
-    allowing for easy catching of any GeoSpy-related error.
+    All custom GeoIntel exceptions inherit from this base class,
+    allowing for easy catching of any GeoIntel-related error.
     """
     pass
 
 
-class APIError(GeoSpyError):
+class APIError(GeoIntelError):
     """
     Exception raised for API-related errors.
     
@@ -28,7 +28,7 @@ class APIError(GeoSpyError):
     pass
 
 
-class ImageProcessingError(GeoSpyError):
+class ImageProcessingError(GeoIntelError):
     """
     Exception raised for image processing errors.
     
@@ -41,7 +41,7 @@ class ImageProcessingError(GeoSpyError):
     pass
 
 
-class ValidationError(GeoSpyError):
+class ValidationError(GeoIntelError):
     """
     Exception raised for validation errors.
     

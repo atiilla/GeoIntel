@@ -1,4 +1,4 @@
-"""Prompt templates for GeoSpy location analysis."""
+"""Prompt templates for GeoIntel location analysis."""
 
 BASE_PROMPT = """You are a professional geolocation expert. You MUST respond with a valid JSON object in the following format:
 

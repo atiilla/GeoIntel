@@ -1,4 +1,4 @@
-# GeoSpy Quick Reference Guide
+# GeoIntel Quick Reference Guide
 
 ## Installation
 
@@ -11,14 +11,14 @@ pip install -r requirements.txt
 ### As a Library
 
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
 # Initialize with API key
-geospy = GeoSpy(api_key="your_gemini_api_key")
+geointel = GeoIntel(api_key="your_gemini_api_key")
 
 # Or use environment variable
 # export GEMINI_API_KEY="your_key"
-geospy = GeoSpy()
+geointel = GeoIntel()
 
 # Analyze an image
 result = geospy.locate("path/to/image.jpg")
@@ -34,22 +34,22 @@ for location in result["locations"]:
 
 ```bash
 # Basic usage
-geospyer --image photo.jpg
+geointel --image photo.jpg
 
 # With context and guess
-geospyer --image photo.jpg --context "Beach photo" --guess "Mediterranean"
+geointel --image photo.jpg --context "Beach photo" --guess "Mediterranean"
 
 # Save results to file
-geospyer --image photo.jpg --output results.json
+geointel --image photo.jpg --output results.json
 
 # Verbose mode (debug logging)
-geospyer --image photo.jpg --verbose
+geointel --image photo.jpg --verbose
 
 # Custom API key
-geospyer --image photo.jpg --api-key YOUR_KEY
+geointel --image photo.jpg --api-key YOUR_KEY
 
 # Analyze image from URL
-geospyer --image https://example.com/photo.jpg
+geointel --image https://example.com/photo.jpg
 ```
 
 ## Advanced Usage
@@ -57,10 +57,10 @@ geospyer --image https://example.com/photo.jpg
 ### Error Handling
 
 ```python
-from geospyer import GeoSpy, APIError, ImageProcessingError, GeoSpyError
+from geointel import GeoIntel, APIError, ImageProcessingError, GeoIntelError
 
 try:
-    geospy = GeoSpy()
+    geointel = GeoIntel()
     result = geospy.locate("image.jpg")
     
 except APIError as e:
@@ -71,7 +71,7 @@ except ImageProcessingError as e:
     print(f"Image error: {e}")
     # Handle image loading/processing errors
     
-except GeoSpyError as e:
+except GeoIntelError as e:
     print(f"GeoSpy error: {e}")
     # Handle any GeoSpy-related error
 ```
@@ -80,7 +80,7 @@ except GeoSpyError as e:
 
 ```python
 import logging
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
 # Configure logging
 logging.basicConfig(
@@ -88,15 +88,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Use GeoSpy (will now output logs)
-geospy = GeoSpy()
-result = geospy.locate("image.jpg")
+# Use GeoIntel (will now output logs)
+geointel = GeoIntel()
+result = geointel.locate("image.jpg")
 ```
 
 ### Using Utilities
 
 ```python
-from geospyer.utils import (
+from geointel.utils import (
     validate_coordinates,
     format_location_string,
     get_google_maps_url,
@@ -135,10 +135,10 @@ $env:GEMINI_API_KEY="your_gemini_api_key"
 set GEMINI_API_KEY=your_gemini_api_key
 ```
 
-### Available Config (in `geospyer/config.py`)
+### Available Config (in `geointel/config.py`)
 
 ```python
-from geospyer.config import (
+from geointel.config import (
     GEMINI_API_URL,           # API endpoint
     DEFAULT_TEMPERATURE,       # AI temperature (0.4)
     REQUEST_TIMEOUT,          # API timeout (30s)
@@ -181,9 +181,9 @@ from geospyer.config import (
 ### Example 1: Simple Analysis
 
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
-geospy = GeoSpy()
+geointel = GeoIntel()
 result = geospy.locate("vacation.jpg")
 
 if "error" not in result:
@@ -207,7 +207,7 @@ result = geospy.locate(
 import os
 from pathlib import Path
 
-geospy = GeoSpy()
+geointel = GeoIntel()
 image_dir = Path("./photos")
 
 for image_path in image_dir.glob("*.jpg"):
@@ -233,7 +233,7 @@ Error: API key not provided
 
 **Solution:** Set the `GEMINI_API_KEY` environment variable or pass it to the constructor:
 ```python
-geospy = GeoSpy(api_key="your_key")
+geointel = GeoIntel(api_key="your_key")
 ```
 
 ### Image Not Found
@@ -271,8 +271,8 @@ Error: Request to Gemini API timed out
 
 1. Check the examples in `examples/` directory
 2. Read `IMPROVEMENTS.md` for detailed documentation
-3. Use `--help` flag: `geospyer --help`
-4. Enable verbose logging: `geospyer --image photo.jpg --verbose`
+3. Use `--help` flag: `geointel --help`
+4. Enable verbose logging: `geointel --image photo.jpg --verbose`
 
 ## Common Patterns
 
@@ -313,7 +313,7 @@ coordinates = [
 
 ## Performance Tips
 
-1. **Reuse GeoSpy instance** - Initialize once, use many times
+1. **Reuse GeoIntel instance** - Initialize once, use many times
 2. **Handle errors gracefully** - Use try/except blocks
 3. **Enable logging** - For debugging and monitoring
 4. **Use batch processing** - For multiple images

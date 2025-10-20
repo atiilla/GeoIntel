@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Simple example showing how to use GeoSpy as a library
+Simple example showing how to use GeoIntel as a library
 """
 
-from geospyer import GeoSpy
+from geointel import GeoIntel
 import os 
 import pathlib
 import json
 
-# Initialize GeoSpy
-geospy = GeoSpy(api_key="your_api_key_here")
+# Initialize GeoIntel
+geointel = GeoIntel(api_key="your_api_key_here")
 
 # Analyze a local image
 image_path = os.path.join(pathlib.Path(__file__).parent.parent, "kule.jpg")
-result = geospy.locate(image_path=image_path)
+result = geointel.locate(image_path=image_path)
 
 # For this example, let's show how to access the data
 if "error" in result:
@@ -21,7 +21,7 @@ if "error" in result:
     exit(1)
 
 # Example 1: Save the raw JSON to a file
-with open("geospy_result.json", "w") as f:
+with open("geointel_result.json", "w") as f:
     json.dump(result, f, indent=2)
     
 # Example 2: Access specific data from the result

@@ -1,16 +1,16 @@
-# geospy
+# GeoIntel
 
-![GitHub](https://img.shields.io/github/license/atiilla/geospy)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/atiilla/geospy)
+![GitHub](https://img.shields.io/github/license/atiilla/geointel)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/atiilla/geointel)
 
 Python tool using Google's Gemini API to uncover the location where photos were taken through AI-powered geo-location analysis.
 
-[![asciicast](https://asciinema.org/a/722241.svg)](https://asciinema.org/a/722241)
+[![asciicast](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s.svg)](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s)
 
 ## Installation
 
 ```bash
-pip install geospyer
+pip install geointel
 ```
 
 ## Usage
@@ -18,7 +18,7 @@ pip install geospyer
 ### Command Line Interface
 
 ```bash
-geospyer --image path/to/your/image.jpg
+geointel --image path/to/your/image.jpg
 ```
 
 #### Available Arguments
@@ -36,39 +36,39 @@ geospyer --image path/to/your/image.jpg
 
 Basic usage:
 ```bash
-geospyer --image vacation_photo.jpg
+geointel --image vacation_photo.jpg
 ```
 
 With additional context:
 ```bash
-geospyer --image vacation_photo.jpg --context "Taken during summer vacation in 2023"
+geointel --image vacation_photo.jpg --context "Taken during summer vacation in 2023"
 ```
 
 With location guess:
 ```bash
-geospyer --image vacation_photo.jpg --guess "Mediterranean coast"
+geointel --image vacation_photo.jpg --guess "Mediterranean coast"
 ```
 
 Saving results to a file:
 ```bash
-geospyer --image vacation_photo.jpg --output results.json
+geointel --image vacation_photo.jpg --output results.json
 ```
 
 Using a custom API key:
 ```bash
-geospyer --image vacation_photo.jpg --api-key "your-api-key-here"
+geointel --image vacation_photo.jpg --api-key "your-api-key-here"
 ```
 
 Enable verbose logging for debugging:
 ```bash
-geospyer --image vacation_photo.jpg --verbose
+geointel --image vacation_photo.jpg --verbose
 ```
 
 ### API Key Setup
 
-GeoSpy uses Google's Gemini API. You can:
+GeoIntel uses Google's Gemini API. You can:
 1. Set the API key as an environment variable: `GEMINI_API_KEY=your_key_here`
-2. Pass the API key directly when initializing: `GeoSpy(api_key="your_key_here")`
+2. Pass the API key directly when initializing: `GeoIntel(api_key="your_key_here")`
 3. Use the `--api-key` parameter in the command line
 
 Get your Gemini API key from [Google AI Studio](https://ai.google.dev/).
@@ -78,13 +78,13 @@ Get your Gemini API key from [Google AI Studio](https://ai.google.dev/).
 #### Basic Usage
 
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
-# Initialize GeoSpy
-geospy = GeoSpy()  # Uses GEMINI_API_KEY from environment
+# Initialize GeoIntel
+geointel = GeoIntel()  # Uses GEMINI_API_KEY from environment
 
 # Analyze an image and get JSON result
-result = geospy.locate(image_path="image.jpg")
+result = geointel.locate(image_path="image.jpg")
 
 # Work with the JSON data
 if "error" in result:
@@ -105,15 +105,15 @@ else:
 #### Advanced Usage with Error Handling
 
 ```python
-from geospyer import GeoSpy, APIError, ImageProcessingError
+from geointel import GeoIntel, APIError, ImageProcessingError
 import logging
 
 # Configure logging (optional)
 logging.basicConfig(level=logging.INFO)
 
 try:
-    geospy = GeoSpy()
-    result = geospy.locate(
+    geointel = GeoIntel()
+    result = geointel.locate(
         image_path="image.jpg",
         context_info="Historic building in urban setting",
         location_guess="Europe"
@@ -133,7 +133,7 @@ except ValueError as e:
 #### Using Utility Functions
 
 ```python
-from geospyer.utils import validate_coordinates, format_location_string, get_google_maps_url
+from geointel.utils import validate_coordinates, format_location_string, get_google_maps_url
 
 # Validate coordinates
 if validate_coordinates(40.7128, -74.0060):
@@ -220,12 +220,12 @@ The API returns a structured JSON response with:
 
 ## Architecture
 
-GeoSpy is built with a modular architecture:
+GeoIntel is built with a modular architecture:
 
 ```
-geospyer/
+geointel/
 ├── __init__.py          # Package exports
-├── geospy.py            # Main GeoSpy class
+├── geointel.py          # Main GeoIntel class
 ├── cli.py               # Command-line interface
 ├── config.py            # Configuration and constants
 ├── prompts.py           # AI prompt templates
@@ -234,13 +234,13 @@ geospyer/
 ```
 
 **Key Components:**
-- **Custom Exceptions**: `GeoSpyError`, `APIError`, `ImageProcessingError`, `ValidationError`
+- **Custom Exceptions**: `GeoIntelError`, `APIError`, `ImageProcessingError`, `ValidationError`
 - **Logging System**: Professional logging with configurable levels
 - **Type Safety**: Complete type hints for better IDE support
 - **Utilities**: Helper functions for validation, formatting, and more
 
 ## Disclaimer
-GeoSpy is intended for educational and research purposes only. While it uses AI models to estimate the location of where an image was taken, its predictions are not guaranteed to be accurate. Do not use this tool for surveillance, stalking, law enforcement, or any activity that may infringe on personal privacy, violate laws, or cause harm.
+GeoIntel is intended for educational and research purposes only. While it uses AI models to estimate the location of where an image was taken, its predictions are not guaranteed to be accurate. Do not use this tool for surveillance, stalking, law enforcement, or any activity that may infringe on personal privacy, violate laws, or cause harm.
 
 The author(s) and contributors are not responsible for any damages, legal issues, or consequences resulting from the use or misuse of this software. Use at your own risk and discretion.
 

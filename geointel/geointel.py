@@ -1,5 +1,5 @@
 """
-GeoSpy - AI-powered geolocation analysis using Gemini API.
+GeoIntel - AI-powered geolocation analysis using Gemini API.
 
 This module provides functionality to analyze images and identify their likely
 geographic locations using Google's Gemini AI model.
@@ -32,7 +32,7 @@ from .config import (
     CONFIDENCE_MEDIUM,
 )
 from .prompts import build_prompt
-from .exceptions import GeoSpyError, APIError, ImageProcessingError
+from .exceptions import GeoIntelError, APIError, ImageProcessingError
 from .utils import sanitize_api_key
 
 
@@ -40,9 +40,9 @@ from .utils import sanitize_api_key
 logger = logging.getLogger(__name__)
 
 
-class GeoSpy:
+class GeoIntel:
     """
-    GeoSpy client for analyzing images and identifying geographic locations.
+    GeoIntel client for analyzing images and identifying geographic locations.
     
     This class provides an interface to Google's Gemini AI model for
     geolocation analysis of images.
@@ -52,14 +52,14 @@ class GeoSpy:
         gemini_api_url (str): URL endpoint for Gemini API
         
     Example:
-        >>> geospy = GeoSpy(api_key="your_api_key")
-        >>> results = geospy.locate("path/to/image.jpg")
+        >>> geointel = GeoIntel(api_key="your_api_key")
+        >>> results = geointel.locate("path/to/image.jpg")
         >>> print(results["locations"][0]["city"])
     """
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize GeoSpy client.
+        Initialize GeoIntel client.
         
         Args:
             api_key: Gemini API key. If not provided, will look for
@@ -77,7 +77,7 @@ class GeoSpy:
             )
             
         self.gemini_api_url = GEMINI_API_URL
-        logger.info(f"GeoSpy client initialized (API key: {sanitize_api_key(self.gemini_api_key)})")
+        logger.info(f"GeoIntel client initialized (API key: {sanitize_api_key(self.gemini_api_key)})")
         
     def _detect_mime_type(self, image_path: str) -> str:
         """

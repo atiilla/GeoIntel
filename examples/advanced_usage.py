@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Advanced example showing best practices for using GeoSpy as a library.
+Advanced example showing best practices for using GeoIntel as a library.
 
 This example demonstrates:
 - Proper error handling
@@ -16,7 +16,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any
 
-from geospyer import GeoSpy, GeoSpyError, APIError, ImageProcessingError
+from geointel import GeoIntel, GeoIntelError, APIError, ImageProcessingError
 
 
 # Configure logging
@@ -28,13 +28,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def analyze_single_image(geospy: GeoSpy, image_path: str, 
+def analyze_single_image(geointel: GeoIntel, image_path: str, 
                         context: str = None, guess: str = None) -> Dict[str, Any]:
     """
     Analyze a single image with proper error handling.
     
     Args:
-        geospy: GeoSpy instance
+        geointel: GeoIntel instance
         image_path: Path to image or URL
         context: Optional context information
         guess: Optional location guess
@@ -44,7 +44,7 @@ def analyze_single_image(geospy: GeoSpy, image_path: str,
     """
     try:
         logger.info(f"Analyzing: {image_path}")
-        result = geospy.locate(
+        result = geointel.locate(
             image_path=image_path,
             context_info=context,
             location_guess=guess
@@ -72,20 +72,20 @@ def analyze_single_image(geospy: GeoSpy, image_path: str,
     except APIError as e:
         logger.error(f"API error: {e}")
         return {"error": str(e)}
-    except GeoSpyError as e:
-        logger.error(f"GeoSpy error: {e}")
+    except GeoIntelError as e:
+        logger.error(f"GeoIntel error: {e}")
         return {"error": str(e)}
     except Exception as e:
         logger.exception("Unexpected error")
         return {"error": str(e)}
 
 
-def batch_analyze_images(geospy: GeoSpy, image_paths: List[str]) -> List[Dict[str, Any]]:
+def batch_analyze_images(geointel: GeoIntel, image_paths: List[str]) -> List[Dict[str, Any]]:
     """
     Analyze multiple images in batch.
     
     Args:
-        geospy: GeoSpy instance
+        geointel: GeoIntel instance
         image_paths: List of image paths or URLs
         
     Returns:
@@ -95,7 +95,7 @@ def batch_analyze_images(geospy: GeoSpy, image_paths: List[str]) -> List[Dict[st
     
     for i, image_path in enumerate(image_paths, 1):
         logger.info(f"Processing image {i}/{len(image_paths)}")
-        result = analyze_single_image(geospy, image_path)
+        result = analyze_single_image(geointel, image_path)
         results.append({
             "image_path": image_path,
             "result": result
@@ -127,10 +127,10 @@ def save_results(results: Dict[str, Any], output_path: str) -> bool:
 
 def main():
     """Main example function."""
-    # Initialize GeoSpy with API key from environment
+    # Initialize GeoIntel with API key from environment
     try:
-        geospy = GeoSpy()  # Will use GEMINI_API_KEY from environment
-        logger.info("GeoSpy initialized successfully")
+        geointel = GeoIntel()  # Will use GEMINI_API_KEY from environment
+        logger.info("GeoIntel initialized successfully")
     except ValueError as e:
         logger.error(f"Failed to initialize: {e}")
         logger.info("Please set GEMINI_API_KEY environment variable")
@@ -145,7 +145,7 @@ def main():
     
     if os.path.exists(image_path):
         result = analyze_single_image(
-            geospy,
+            geointel,
             image_path,
             context="Historic tower in an urban setting",
             guess="Turkey"
@@ -173,8 +173,8 @@ def main():
     logger.info("=" * 50)
     
     url = "https://example.com/image.jpg"  # Replace with actual URL
-    # result = analyze_single_image(geospy, url)
-    logger.info(f"To analyze from URL, use: analyze_single_image(geospy, '{url}')")
+    # result = analyze_single_image(geointel, url)
+    logger.info(f"To analyze from URL, use: analyze_single_image(geointel, '{url}')")
     
     # Example 3: Batch processing
     logger.info("\n" + "=" * 50)
@@ -185,7 +185,7 @@ def main():
     # image_dir = Path("./images")
     # if image_dir.exists():
     #     image_paths = [str(p) for p in image_dir.glob("*.jpg")]
-    #     batch_results = batch_analyze_images(geospy, image_paths)
+    #     batch_results = batch_analyze_images(geointel, image_paths)
     #     save_results({"batch_results": batch_results}, "batch_results.json")
     
     logger.info("Example completed!")

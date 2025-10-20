@@ -1,16 +1,16 @@
-# GeoSpy Code Improvements
+# GeoIntel Code Improvements
 
-This document outlines all the improvements made to the GeoSpy codebase.
+This document outlines all the improvements made to the GeoIntel codebase.
 
 ## Summary of Changes
 
 ### 1. **Code Organization & Architecture**
 
 #### New Modules Created
-- `geospyer/config.py` - Centralized configuration and constants
-- `geospyer/prompts.py` - Prompt templates for AI interactions
-- `geospyer/exceptions.py` - Custom exception classes
-- `geospyer/utils.py` - Utility functions for common operations
+- `geointel/config.py` - Centralized configuration and constants
+- `geointel/prompts.py` - Prompt templates for AI interactions
+- `geointel/exceptions.py` - Custom exception classes
+- `geointel/utils.py` - Utility functions for common operations
 - `examples/advanced_usage.py` - Comprehensive usage examples
 
 #### Benefits
@@ -50,7 +50,7 @@ This document outlines all the improvements made to the GeoSpy codebase.
 ### 4. **Error Handling**
 
 #### Changes
-- Custom exception classes: `GeoSpyError`, `APIError`, `ImageProcessingError`, `ValidationError`
+- Custom exception classes: `GeoIntelError`, `APIError`, `ImageProcessingError`, `ValidationError`
 - Proper exception chaining with `from e` syntax
 - Granular error handling for different failure scenarios
 - Better error messages with context
@@ -150,11 +150,11 @@ This document outlines all the improvements made to the GeoSpy codebase.
 ## File Structure (After Improvements)
 
 ```
-geospyer/
+geointel/
 ├── __init__.py          # Package initialization & exports
 ├── __main__.py          # Module entry point
 ├── cli.py               # Command-line interface
-├── geospy.py            # Main GeoSpy class
+├── geointel.py          # Main GeoIntel class
 ├── config.py            # Configuration & constants (NEW)
 ├── prompts.py           # AI prompt templates (NEW)
 ├── exceptions.py        # Custom exceptions (NEW)
@@ -189,9 +189,9 @@ All improvements maintain **100% backward compatibility** with existing code:
 
 ```python
 # This still works exactly as before
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
-geospy = GeoSpy(api_key="your_key")
+geointel = GeoIntel(api_key="your_key")
 result = geospy.locate("image.jpg")
 ```
 
@@ -199,22 +199,22 @@ result = geospy.locate("image.jpg")
 
 ### Basic Usage (Still Works)
 ```python
-from geospyer import GeoSpy
+from geointel import GeoIntel
 
-geospy = GeoSpy(api_key="your_key")
+geointel = GeoIntel(api_key="your_key")
 result = geospy.locate("image.jpg")
 ```
 
 ### Advanced Usage (New Capabilities)
 ```python
-from geospyer import GeoSpy, GeoSpyError, APIError
+from geointel import GeoIntel, GeoIntelError, APIError
 import logging
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
 try:
-    geospy = GeoSpy()  # Uses GEMINI_API_KEY from environment
+    geointel = GeoIntel()  # Uses GEMINI_API_KEY from environment
     result = geospy.locate(
         image_path="image.jpg",
         context_info="Historic building",
@@ -222,17 +222,17 @@ try:
     )
 except APIError as e:
     print(f"API error: {e}")
-except GeoSpyError as e:
+except GeoIntelError as e:
     print(f"GeoSpy error: {e}")
 ```
 
 ### CLI with Verbose Logging (New Feature)
 ```bash
 # Enable debug logging
-geospyer --image photo.jpg --verbose
+geointel --image photo.jpg --verbose
 
 # All existing commands still work
-geospyer --image photo.jpg --context "Summer photo" --output results.json
+geointel --image photo.jpg --context "Summer photo" --output results.json
 ```
 
 ## Testing Recommendations
@@ -278,12 +278,12 @@ No migration needed! All existing code continues to work. To take advantage of n
 
 3. **Use new utility functions** (optional):
    ```python
-   from geospyer.utils import validate_coordinates, format_location_string
+   from geointel.utils import validate_coordinates, format_location_string
    ```
 
 ## Conclusion
 
-These improvements make GeoSpy:
+These improvements make GeoIntel:
 - ✅ More maintainable
 - ✅ More robust
 - ✅ More professional

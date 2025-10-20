@@ -1,5 +1,5 @@
 """
-Command-line interface for GeoSpy.
+Command-line interface for GeoIntel.
 
 This module provides a CLI for analyzing images and identifying their
 geographic locations using AI.
@@ -11,8 +11,8 @@ import logging
 import sys
 from typing import Dict, Any, Optional
 
-from geospyer import GeoSpy, GeoSpyError
-from geospyer.config import (
+from geointel import GeoIntel, GeoIntelError
+from geointel.config import (
     COLOR_RED,
     COLOR_GREEN,
     COLOR_YELLOW,
@@ -42,17 +42,17 @@ def setup_logging(verbose: bool = False) -> None:
 
 
 def banner() -> None:
-    """Display the GeoSpy banner."""
+    """Display the GeoIntel banner."""
     font = """
-█▀▀▀ █▀▀ █▀▀█ █▀▀ █▀▀█ █──█ 
-█─▀█ █▀▀ █──█ ▀▀█ █──█ █▄▄█ 
-▀▀▀▀ ▀▀▀ ▀▀▀▀ ▀▀▀ █▀▀▀ ▄▄▄█
+█▀▀▀ █▀▀ █▀▀█ ─▀─ █▀▀▄ ▀▀█▀▀ █▀▀ █── 
+█─▀█ █▀▀ █──█ ▀█▀ █──█ ──█── █▀▀ █── 
+▀▀▀▀ ▀▀▀ ▀▀▀▀ ▀▀▀ ▀──▀ ──▀── ▀▀▀ ▀▀▀
 ----------------------------------------
 AI powered geo-location tool
 Uncover the location of photos using AI
 ----------------------------------------
 # Disclaimer: Experimental use only. Not for production.
-# Github: https://github.com/atiilla/geospy
+# Github: https://github.com/atiilla/geointel
 """
     print(font)
 
@@ -102,7 +102,7 @@ def display_results(results: Dict[str, Any]) -> None:
     Display analysis results in a formatted manner.
     
     Args:
-        results: Analysis results from GeoSpy
+        results: Analysis results from GeoIntel
     """
     print(f"\n{COLOR_GREEN}{'=' * 50}")
     print("ANALYSIS RESULTS")
@@ -171,11 +171,11 @@ def save_results(results: Dict[str, Any], output_path: str) -> None:
 
 
 def main() -> None:
-    """Main entry point for the GeoSpy CLI."""
+    """Main entry point for the GeoIntel CLI."""
     parser = argparse.ArgumentParser(
-        prog="geospyer",
-        description="GeoSpy - AI powered geolocation tool",
-        epilog="Example: geospyer --image photo.jpg --context 'Taken in summer' --output results.json"
+        prog="geointel",
+        description="GeoIntel - AI powered geolocation tool",
+        epilog="Example: geointel --image photo.jpg --context 'Taken in summer' --output results.json"
     )
     
     parser.add_argument(
@@ -222,19 +222,19 @@ def main() -> None:
     # Validate required arguments
     if not args.image:
         print_error("No image provided")
-        print("\nUsage: geospyer --image <path_or_url> [options]")
-        print("Run 'geospyer --help' for more information")
+        print("\nUsage: geointel --image <path_or_url> [options]")
+        print("Run 'geointel --help' for more information")
         sys.exit(1)
 
-    # Initialize GeoSpy
+    # Initialize GeoIntel
     try:
-        geospy = GeoSpy(api_key=args.api_key)
+        geointel = GeoIntel(api_key=args.api_key)
     except ValueError as e:
-        print_error("Failed to initialize GeoSpy", exception=str(e))
+        print_error("Failed to initialize GeoIntel", exception=str(e))
         print("\nPlease set GEMINI_API_KEY environment variable or use --api-key option")
         sys.exit(1)
-    except GeoSpyError as e:
-        print_error("Failed to initialize GeoSpy", exception=str(e))
+    except GeoIntelError as e:
+        print_error("Failed to initialize GeoIntel", exception=str(e))
         sys.exit(1)
     except Exception as e:
         print_error("An unexpected error occurred during initialization", exception=str(e))
@@ -255,7 +255,7 @@ def main() -> None:
     print_info("Processing... This may take a few moments...")
     
     try:
-        results = geospy.locate(
+        results = geointel.locate(
             image_path=args.image,
             context_info=args.context,
             location_guess=args.guess
@@ -280,8 +280,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print(f"\n\n{COLOR_YELLOW}⚠ Operation cancelled by user{COLOR_RESET}")
         sys.exit(130)
-    except GeoSpyError as e:
-        print_error("A GeoSpy error occurred", exception=str(e))
+    except GeoIntelError as e:
+        print_error("A GeoIntel error occurred", exception=str(e))
         sys.exit(1)
     except Exception as e:
         print_error("An unexpected error occurred", exception=str(e))

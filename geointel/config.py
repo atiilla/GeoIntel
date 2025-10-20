@@ -1,4 +1,4 @@
-"""Configuration constants and settings for GeoSpy."""
+"""Configuration constants and settings for GeoIntel."""
 
 # API Configuration
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite-001:generateContent"

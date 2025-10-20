@@ -4,10 +4,10 @@
 
 ### Added
 - **New Modules:**
-  - `geospyer/config.py` - Centralized configuration and constants
-  - `geospyer/prompts.py` - AI prompt template management
-  - `geospyer/exceptions.py` - Custom exception classes
-  - `geospyer/utils.py` - Utility helper functions
+  - `geointel/config.py` - Centralized configuration and constants
+  - `geointel/prompts.py` - AI prompt template management
+  - `geointel/exceptions.py` - Custom exception classes
+  - `geointel/utils.py` - Utility helper functions
   - `examples/advanced_usage.py` - Comprehensive usage examples
 
 - **Features:**
@@ -84,9 +84,9 @@
 
 ```python
 # This still works exactly as before
-from geospyer import GeoSpy
-geospy = GeoSpy(api_key="your_key")
-result = geospy.locate("image.jpg")
+from geointel import GeoIntel
+geointel = GeoIntel(api_key="your_key")
+result = geointel.locate("image.jpg")
 ```
 
 ## Migration Notes
@@ -101,9 +101,9 @@ No migration needed! To use new features:
 
 2. **Use specific exceptions:**
    ```python
-   from geospyer import APIError, ImageProcessingError
+   from geointel import APIError, ImageProcessingError
    try:
-       result = geospy.locate(image)
+       result = geointel.locate(image)
    except APIError as e:
        # Handle API-specific errors
        pass
@@ -111,6 +111,6 @@ No migration needed! To use new features:
 
 3. **Use verbose CLI:**
    ```bash
-   geospyer --image photo.jpg --verbose
+   geointel --image photo.jpg --verbose
    ```
 

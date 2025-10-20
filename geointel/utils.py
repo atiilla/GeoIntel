@@ -1,5 +1,5 @@
 """
-Utility functions for GeoSpy.
+Utility functions for GeoIntel.
 
 This module provides helper functions for validation, formatting,
 and other common operations.

@@ -91,3 +91,4 @@ def build_geolocation_prompt(context_info: Optional[str] = None,
     prompt += "\n\nRemember: Your response must be a valid JSON object only. No additional text or formatting."
     
     return prompt
+

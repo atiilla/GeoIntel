@@ -90,3 +90,4 @@ def format_results(results: Dict[str, Any]) -> str:
         output += format_location(location, i)
     
     return output
+

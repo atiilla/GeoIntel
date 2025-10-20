@@ -41,3 +41,4 @@ def parse_arguments() -> Any:
     )
     
     return parser.parse_args()
+

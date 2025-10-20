@@ -202,3 +202,4 @@ from geointel import GeoIntel
 | `cli.py` | REFACTORED | CLI orchestration | Coordinates CLI components |
 | `__init__.py` | UNCHANGED | Package initialization | Exports only GeoIntel |
 | `__main__.py` | UNCHANGED | CLI entry point | Calls cli.main() |
+

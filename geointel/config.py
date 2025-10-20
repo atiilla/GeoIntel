@@ -2,15 +2,15 @@ import os
 from typing import Optional
 
 # Default API configuration
-DEFAULT_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite-001:generateContent"
+DEFAULT_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
 DEFAULT_API_KEY_ENV_VAR = "GEMINI_API_KEY"
 DEFAULT_MIME_TYPE = "image/jpeg"
 
 # Default generation configuration for Gemini API
 DEFAULT_GENERATION_CONFIG = {
-    "temperature": 0.4,
-    "topK": 32,
-    "topP": 1,
+    "temperature": 0.3,  # Lower for more consistent/accurate location predictions
+    "topK": 40,
+    "topP": 0.95,
     "maxOutputTokens": 2048
 }
 

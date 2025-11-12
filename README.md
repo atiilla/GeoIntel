@@ -1,20 +1,44 @@
 # GeoIntel
 
-![GitHub](https://img.shields.io/github/license/atiilla/geointel)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/atiilla/geointel)
+![PyPI - Version](https://img.shields.io/pypi/v/geointel?style=flat)
+
 
 Python tool using Google's Gemini API to uncover the location where photos were taken through AI-powered geo-location analysis.
 
 ## Installation
 
 ```bash
+# Basic installation
 pip install geointel
 ```
 
-Usage
+## Usage
 
-Command Line Interface
+### Web Interface (NEW!)
+
+Launch the interactive web interface with a modern UI:
+
+```bash
+- Standard:
+$ geointel --web
+
+- Custom host and port:
+$ geointel --web --host 0.0.0.0 --port 4000 
 ```
+
+<img src="screenshot.jpg" alt="GeoIntel Web Interface">
+
+Then open your browser to `http://127.0.0.1:5000`
+
+Features:
+- Drag-and-drop image upload
+- In-browser API key configuration
+- Interactive 3D Google Maps
+- Real-time AI analysis with detailed explanations
+
+### Command Line Interface
+
+```bash
 geointel --image path/to/your/image.jpg
 ```
 
@@ -24,7 +48,10 @@ Available Arguments
 
 Argument	Description
 ```
---image	Required. Path to the image file or URL to analyze
+--web	Launch web interface (no --image required)
+--host	Host address for web interface (default: 127.0.0.1)
+--port	Port number for web interface (default: 5000)
+--image	Required for CLI mode. Path to the image file or URL to analyze
 --context	Additional context information about the image
 --guess	Your guess of where the image might have been taken
 --output	Output file path to save the results (JSON format)
@@ -32,44 +59,39 @@ Argument	Description
 ```
 
 Examples
+```bash
+Launch web interface:
+$ geointel --web
 
-Basic usage:
-
-geointel --image vacation_photo.jpg
+Basic CLI usage:
+$ geointel --image vacation_photo.jpg
 
 With additional context:
-
-geointel --image vacation_photo.jpg --context "Taken during summer vacation in 2023"
+$ geointel --image vacation_photo.jpg --context "Taken during summer vacation in 2023"
 
 With location guess:
-
-geointel --image vacation_photo.jpg --guess "Mediterranean coast"
+$ geointel --image vacation_photo.jpg --guess "Mediterranean coast"
 
 Saving results to a file:
-
-geointel --image vacation_photo.jpg --output results.json
+$ geointel --image vacation_photo.jpg --output results.json
 
 Using a custom API key:
-
-geointel --image vacation_photo.jpg --api-key "your-api-key-here"
+$ geointel --image vacation_photo.jpg --api-key "your-api-key-here"
+```
 
 API Key Setup
 
 GeoIntel uses Google's Gemini API. You can:
+```
+- Set the API key as an environment variable: GEMINI_API_KEY=your_key_here
 
-1. Set the API key as an environment variable: GEMINI_API_KEY=your_key_here
-
-
-2. Pass the API key directly when initializing: GeoIntel(api_key="your_key_here")
-
-
-3. Use the --api-key parameter in the command line
-
+- Use the --api-key parameter in the command line
+```
 
 
 Get your Gemini API key from Google AI Studio.
 
-Python Library
+### SDK
 ```
 from geointel import GeoIntel
 
@@ -95,38 +117,36 @@ else:
             maps_url = f"https://www.google.com/maps?q={lat},{lng}"
 ```
 
-See the examples directory for more detailed usage examples.
-
 Features
 
-AI-powered geolocation of images using Google's Gemini API
+- AI-powered geolocation of images using Google's Gemini API
 
-Generate Google Maps links based on image coordinates
+- Generate Google Maps links based on image coordinates
 
-Provide confidence levels for location predictions
+- Provide confidence levels for location predictions
 
-Support for additional context and location guesses
+- Support for additional context and location guesses
 
-Export results to JSON
+- Export results to JSON
 
-Handles both local image files and image URLs
+- Handles both local image files and image URLs
 
 
 Response Format
 
-The API returns a structured JSON response with:
+- The API returns a structured JSON response with:
 
-interpretation: Comprehensive analysis of the image
+- interpretation: Comprehensive analysis of the image
 
-locations: Array of possible locations with:
+- locations: Array of possible locations with:
 
-Country, state, and city information
+- Country, state, and city information
 
-Confidence level (High/Medium/Low)
+- Confidence level (High/Medium/Low)
 
-Coordinates (latitude/longitude)
+- Coordinates (latitude/longitude)
 
-Detailed explanation of the reasoning
+- Detailed explanation of the reasoning
 
 
 

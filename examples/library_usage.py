@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-Simple example showing how to use GeoIntel as a library
-"""
-
 from geointel import GeoIntel
 import os 
 import pathlib

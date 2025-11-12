@@ -1,179 +1,169 @@
-# GeoIntel
+# 🌍 GeoIntel Web Application
 
-![PyPI - Version](https://img.shields.io/pypi/v/geointel?style=flat)
+A Next.js web application that integrates the GeoIntel geolocation analysis software. Upload images and discover where they were taken using advanced AI-powered pixel-level visual analysis and contextual reasoning.
 
+## Features
 
-Python tool using Google's Gemini API to uncover the location where photos were taken through AI-powered geo-location analysis.
+- **🖼️ Image Upload**: Drag-and-drop or click to upload images
+- **🔍 AI Analysis**: Powered by Google Gemini AI for detailed geolocation analysis
+- **📍 Multiple Locations**: Get up to 3 possible locations with confidence levels
+- **🗺️ Google Maps Integration**: Direct links to view locations on Google Maps
+- **📝 Context Support**: Add additional context or location guesses to improve accuracy
+- **📱 Responsive Design**: Works on desktop and mobile devices
+- **⚡ Client-Side Processing**: All requests run from the user's browser
 
-## Installation
+## Supported Image Formats
+
+- JPEG (.jpg, .jpeg)
+- PNG (.png)
+- WebP (.webp)
+- GIF (.gif)
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+ 
+- Google Gemini API key
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd geointelts
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Get API keys:
+   - **Gemini API Key**: Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - **Google Maps API Key**: Visit [Google Cloud Console](https://console.cloud.google.com/google/maps-apis)
+   
+   **Note**: API keys are configured directly in the application UI and stored in your browser's localStorage. No environment variables needed!
+
+### Development
+
+Run the development server:
 
 ```bash
-# Basic installation
-pip install geointel
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+
+### Production
+
+Build and start the production server:
+
+```bash
+npm run build
+npm start
 ```
 
 ## Usage
 
-### Web Interface (NEW!)
+1. **Configure API Keys**: Click the key icons in the header to set up your Gemini and Google Maps API keys
+2. **Upload an Image**: Drag and drop an image file or click to browse
+3. **Add Context (Optional)**: Provide additional information about the image
+4. **Add Location Guess (Optional)**: Share your best guess of the location
+5. **Analyze**: The AI will analyze the image and provide possible locations
+6. **View Results**: See detailed analysis and location suggestions with confidence levels
+7. **Explore**: Click "View on Google Maps" to see locations on the map
 
-Launch the interactive web interface with a modern UI:
+## Architecture
 
-```bash
-- Standard:
-$ geointel --web
+### Client-Side Components
 
-- Custom host and port:
-$ geointel --web --host 0.0.0.0 --port 4000 
-```
+- **`app/page.tsx`**: Main application interface
+- **`app/components/ImageUpload.tsx`**: Image upload component with drag-and-drop
+- **`app/components/GeoIntelResults.tsx`**: Results display component
+- **`app/services/geointel.ts`**: GeoIntel service class for API interactions
+- **`app/types/geointel.ts`**: TypeScript interfaces and types
 
-<img src="screenshot.jpg" alt="GeoIntel Web Interface">
+### Key Features
 
-Then open your browser to `http://127.0.0.1:5000`
+- **100% Client-Side**: All API requests are made directly from the browser
+- **LocalStorage API Keys**: No environment variables needed - configure keys in the UI
+- **Dark Theme UI**: Modern dark interface matching the template design
+- **Error Handling**: Comprehensive error handling for network, API, and parsing errors
+- **TypeScript**: Full type safety throughout the application
+- **Responsive UI**: Mobile-friendly design with Tailwind CSS
+- **Real-time Feedback**: Loading states and progress indicators
 
-Features:
-- Drag-and-drop image upload
-- In-browser API key configuration
-- Interactive 3D Google Maps
-- Real-time AI analysis with detailed explanations
+## API Integration
 
-### Command Line Interface
+The application integrates with the Google Gemini API for image analysis:
 
-```bash
-geointel --image path/to/your/image.jpg
-```
+- **Model**: Gemini 2.5 Flash
+- **Input**: Base64-encoded images with text prompts
+- **Output**: Structured JSON with location predictions and analysis
+- **Security**: API key is exposed client-side (use environment restrictions)
 
-[![asciicast](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s.svg)](https://asciinema.org/a/I6NqhIr6QkBWaaHNjSlieId5s)
+## Environment Variables
 
-Available Arguments
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_GEMINI_API_KEY` | Google Gemini API key | Yes |
+| `NEXT_PUBLIC_GEMINI_MODEL` | Gemini model to use | No (default: gemini-2.5-flash) |
+| `NEXT_PUBLIC_API_TIMEOUT` | API request timeout in ms | No (default: 30000) |
+| `NEXT_PUBLIC_MAX_OUTPUT_TOKENS` | Maximum output tokens | No (default: 8192) |
 
-Argument	Description
-```
---web	Launch web interface (no --image required)
---host	Host address for web interface (default: 127.0.0.1)
---port	Port number for web interface (default: 5000)
---image	Required for CLI mode. Path to the image file or URL to analyze
---context	Additional context information about the image
---guess	Your guess of where the image might have been taken
---output	Output file path to save the results (JSON format)
---api-key	Custom Gemini API key
-```
+## Security Considerations
 
-Examples
-```bash
-Launch web interface:
-$ geointel --web
+- The Gemini API key is exposed client-side as `NEXT_PUBLIC_GEMINI_API_KEY`
+- Consider using API key restrictions in Google Cloud Console:
+  - Restrict to specific domains/URLs
+  - Limit to Gemini API only
+  - Set usage quotas
 
-Basic CLI usage:
-$ geointel --image vacation_photo.jpg
+## Deployment
 
-With additional context:
-$ geointel --image vacation_photo.jpg --context "Taken during summer vacation in 2023"
+### Vercel (Recommended)
 
-With location guess:
-$ geointel --image vacation_photo.jpg --guess "Mediterranean coast"
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy
 
-Saving results to a file:
-$ geointel --image vacation_photo.jpg --output results.json
+### Other Platforms
 
-Using a custom API key:
-$ geointel --image vacation_photo.jpg --api-key "your-api-key-here"
-```
+The application can be deployed to any platform that supports Next.js:
 
-API Key Setup
+- Netlify
+- AWS Amplify
+- Railway
+- Render
 
-GeoIntel uses Google's Gemini API. You can:
-```
-- Set the API key as an environment variable: GEMINI_API_KEY=your_key_here
+## Troubleshooting
 
-- Use the --api-key parameter in the command line
-```
+### Common Issues
 
+1. **"API Key Required" warning**: 
+   - Ensure `NEXT_PUBLIC_GEMINI_API_KEY` is set in `.env.local`
+   - Restart the development server after adding environment variables
 
-Get your Gemini API key from Google AI Studio.
+2. **API request failures**:
+   - Check your API key is valid and has Gemini API access
+   - Verify your API key restrictions allow requests from your domain
+   - Check browser console for detailed error messages
 
-### SDK
-```
-from geointel import GeoIntel
+3. **Image upload issues**:
+   - Ensure image format is supported (JPEG, PNG, WebP, GIF)
+   - Check file size is under 10MB
+   - Verify browser supports FileReader API
 
-# Initialize GeoIntel
-geointel = GeoIntel()
-
-# Analyze an image and get JSON result
-result = geointel.locate(image_path="image.jpg")
-
-# Work with the JSON data
-if "error" in result:
-    print(f"Error: {result['error']}")
-else:
-    # Access the first location
-    if "locations" in result and result["locations"]:
-        location = result["locations"][0]
-        print(f"Location: {location['city']}, {location['country']}")
-        
-        # Get Google Maps URL
-        if "coordinates" in location:
-            lat = location["coordinates"]["latitude"]
-            lng = location["coordinates"]["longitude"]
-            maps_url = f"https://www.google.com/maps?q={lat},{lng}"
-```
-
-Features
-
-- AI-powered geolocation of images using Google's Gemini API
-
-- Generate Google Maps links based on image coordinates
-
-- Provide confidence levels for location predictions
-
-- Support for additional context and location guesses
-
-- Export results to JSON
-
-- Handles both local image files and image URLs
-
-
-Response Format
-
-- The API returns a structured JSON response with:
-
-- interpretation: Comprehensive analysis of the image
-
-- locations: Array of possible locations with:
-
-- Country, state, and city information
-
-- Confidence level (High/Medium/Low)
-
-- Coordinates (latitude/longitude)
-
-- Detailed explanation of the reasoning
-
-
-
-Disclaimer:
-
-GeoIntel is intended for educational and research purposes only. While it uses AI models to estimate the location of where an image was taken, its predictions are not guaranteed to be accurate. Do not use this tool for surveillance, stalking, law enforcement, or any activity that may infringe on personal privacy, violate laws, or cause harm.
-
-The author(s) and contributors are not responsible for any damages, legal issues, or consequences resulting from the use or misuse of this software. Use at your own risk and discretion.
-
-Always comply with local, national, and international laws and regulations when using AI-based tools.
-
-Contributing
-
-1. Fork the repository
-
-2. Create a new branch (git checkout -b feature/new-feature).
-
-3. Commit your changes (git commit -am 'Add new feature').
-
-4. Push to the branch (git push origin feature/new-feature).
-
-5. Create a pull request.
-
-
-License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Contributing
 
-![Star History Chart](https://api.star-history.com/svg?repos=atiilla/geointel&type=Date)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request

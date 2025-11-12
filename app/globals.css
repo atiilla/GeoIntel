@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #06b6d4;
+  --dark-bg: #0f172a;
+  --dark-surface: #1e293b;
+  --dark-border: #334155;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.animate-drop {
+  animation: drop 0.6s ease-out;
+}
+
+@keyframes drop {
+  0% {
+    transform: translateY(-200px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.drag-over {
+  border: 2px dashed #06b6d4;
+  background-color: rgba(6, 182, 212, 0.1);
+}
+
+.loading-spinner {
+  border: 3px solid rgba(6, 182, 212, 0.3);
+  border-top-color: #06b6d4;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

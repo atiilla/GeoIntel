@@ -23,7 +23,6 @@ export default function Home() {
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Load API keys from localStorage on mount
   useEffect(() => {
     const storedApiKey = localStorage.getItem('geointel_gemini_api_key');
     const storedMapsApiKey = localStorage.getItem('geointel_maps_api_key');
@@ -34,7 +33,6 @@ export default function Home() {
     }
   }, []);
 
-  // Load Google Maps API dynamically
   const loadGoogleMaps = (apiKey: string) => {
     if (mapLoaded || !apiKey) return;
 
@@ -47,7 +45,6 @@ export default function Home() {
       setError('Failed to load Google Maps. Please check your API key.');
     };
 
-    // Define the callback function globally
     (window as any).initMap = () => {
       initializeMap();
     };
@@ -55,7 +52,6 @@ export default function Home() {
     document.head.appendChild(script);
   };
 
-  // Initialize the map
   const initializeMap = () => {
     if (!mapRef.current) return;
 
@@ -628,7 +624,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Similar Images Content */}
           {activeTab === 'similar' && (
             <div className="p-6">
               <div className="text-center py-12">
@@ -639,6 +634,109 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      <footer className="bg-slate-800 border-t border-slate-700 py-8">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <i className="fas fa-info-circle text-cyan-500 mr-2"></i>
+                About GeoIntel
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Advanced AI-powered geolocation analysis using pixel-level visual analysis and contextual reasoning. 
+                Powered by Google Gemini AI for accurate location identification.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <i className="fab fa-github text-cyan-500 mr-2"></i>
+                Open Source
+              </h3>
+              <div className="space-y-3">
+                <a
+                  href="https://github.com/atiilla/GeoIntel"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-gray-300 hover:text-cyan-400 transition-colors"
+                >
+                  <i className="fas fa-star text-yellow-400 mr-2"></i>
+                  <span className="text-sm">Star this repository</span>
+                </a>
+                <a
+                  href="https://github.com/atiilla/GeoIntel/fork"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-gray-300 hover:text-cyan-400 transition-colors"
+                >
+                  <i className="fas fa-code-branch text-cyan-400 mr-2"></i>
+                  <span className="text-sm">Fork & contribute</span>
+                </a>
+                <a
+                  href="https://github.com/atiilla/GeoIntel/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-gray-300 hover:text-cyan-400 transition-colors"
+                >
+                  <i className="fas fa-bug text-red-400 mr-2"></i>
+                  <span className="text-sm">Report issues</span>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <i className="fas fa-user text-cyan-500 mr-2"></i>
+                Author
+              </h3>
+              <div className="space-y-3">
+                <a
+                  href="https://github.com/atiilla"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-gray-300 hover:text-cyan-400 transition-colors"
+                >
+                  <i className="fab fa-github mr-2"></i>
+                  <span className="text-sm">@atiilla</span>
+                </a>
+                <p className="text-gray-400 text-xs">
+                  <i className="fas fa-heart text-red-400 mr-1"></i>
+                  Contributions are welcomed!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <span className="text-gray-400 text-sm">
+                © 2025 GeoIntel. Open source project.
+              </span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <a
+                href="https://github.com/atiilla/GeoIntel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+              >
+                <i className="fab fa-github mr-2"></i>
+                View on GitHub
+              </a>
+              <a
+                href="https://github.com/atiilla/GeoIntel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+              >
+                <i className="fas fa-star mr-2"></i>
+                Give us a Star
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

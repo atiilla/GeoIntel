@@ -6,658 +6,799 @@
     <title>GeoIntel - AI Location Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        primary: '#06b6d4', // cyan-500
-                        'dark-bg': '#0f172a',
-                        'dark-surface': '#1e293b',
-                        'dark-border': '#334155',
+                        primary: '#22d3ee',
+                        'primary-dim': '#0e7490',
+                        'dark-bg': '#06080d',
+                        'dark-surface': '#0d1117',
+                        'dark-card': '#131921',
+                        'dark-border': '#1e2a3a',
+                        'dark-hover': '#1a2332',
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
                     }
                 }
             }
         }
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: #06080d;
+            overflow: hidden;
         }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3a4e; }
+
+        /* ── Noise Texture Overlay ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.018;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        /* ── Map ── */
         .map-container {
             position: relative;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 56px);
         }
         #map {
             width: 100%;
             height: 100%;
+            background: #06080d;
         }
-        .animate-drop {
-            animation: drop 0.6s ease-out;
+
+        /* ── Leaflet Dark Overrides ── */
+        .leaflet-control-zoom a {
+            background-color: rgba(13, 17, 23, 0.9) !important;
+            color: #8b9cb8 !important;
+            border-color: #1e2a3a !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            transition: all 0.2s ease !important;
         }
-        @keyframes drop {
-            0% {
-                transform: translateY(-200px);
-                opacity: 0;
-            }
-            50% {
-                transform: translateY(10px);
-            }
-            100% {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        .leaflet-control-zoom a:hover {
+            background-color: rgba(30, 42, 58, 0.9) !important;
+            color: #22d3ee !important;
         }
-        .tab-active {
-            border-bottom: 2px solid #06b6d4;
-            color: #06b6d4;
+        .leaflet-control-attribution {
+            background-color: rgba(6, 8, 13, 0.6) !important;
+            color: #3a4a5e !important;
+            font-size: 9px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
         }
-        .drag-over {
-            border: 2px dashed #06b6d4;
-            background-color: rgba(6, 182, 212, 0.1);
+        .leaflet-control-attribution a { color: #0e7490 !important; }
+        .leaflet-popup-content-wrapper {
+            background-color: rgba(13, 17, 23, 0.95) !important;
+            color: #c8d6e5 !important;
+            border-radius: 10px !important;
+            border: 1px solid #1e2a3a !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(34, 211, 238, 0.05) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
         }
-        .loading-spinner {
-            border: 3px solid rgba(6, 182, 212, 0.3);
-            border-top-color: #06b6d4;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        .leaflet-popup-tip { background-color: rgba(13, 17, 23, 0.95) !important; border-top: 1px solid #1e2a3a !important; }
+        .leaflet-popup-content { font-family: 'DM Sans', system-ui, sans-serif !important; font-size: 13px !important; line-height: 1.5 !important; }
+        .leaflet-popup-content a { color: #22d3ee !important; text-decoration: none !important; }
+        .leaflet-popup-content a:hover { text-decoration: underline !important; }
+        .leaflet-popup-close-button { color: #3a4a5e !important; font-size: 18px !important; }
+        .leaflet-popup-close-button:hover { color: #c8d6e5 !important; }
+
+        /* ── Animations ── */
+        @keyframes marker-bounce {
+            0%, 100% { transform: translateY(0); }
+            15% { transform: translateY(-20px); }
+            35% { transform: translateY(-8px); }
+            55% { transform: translateY(-3px); }
         }
-        @keyframes spin {
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 0; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        @keyframes scan-line {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(34, 211, 238, 0.08); }
+            50% { box-shadow: 0 0 25px rgba(34, 211, 238, 0.15); }
+        }
+
+        @keyframes orbit {
+            from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        @keyframes float-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .animate-fade-up {
+            animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            opacity: 0;
+        }
+
+        /* ── Glass Card ── */
+        .glass-card {
+            background: rgba(13, 17, 23, 0.6);
+            border: 1px solid rgba(30, 42, 58, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(34, 211, 238, 0.15);
+            background: rgba(19, 25, 33, 0.7);
+        }
+
+        /* ── Upload Zone ── */
+        .upload-zone {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px dashed rgba(34, 211, 238, 0.3);
+            transition: all 0.4s ease;
+        }
+        .upload-zone::after {
+            content: '';
+            position: absolute;
+            inset: -16px;
+            border-radius: 50%;
+            border: 1px solid rgba(34, 211, 238, 0.08);
+            animation: pulse-ring 3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+        .upload-zone:hover::before {
+            border-color: rgba(34, 211, 238, 0.6);
+            inset: -5px;
+        }
+        .upload-zone:hover {
+            background: rgba(34, 211, 238, 0.06);
+            transform: scale(1.04);
+        }
+        .upload-zone:hover .upload-icon {
+            transform: translateY(-4px);
+            color: #22d3ee;
+        }
+        .upload-icon {
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* ── Processing Scanner ── */
+        .scanner-orbit {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #22d3ee;
+            border-right-color: rgba(34, 211, 238, 0.3);
+            animation: orbit 1.2s linear infinite;
+        }
+        .scanner-orbit-outer {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            border-bottom-color: rgba(34, 211, 238, 0.2);
+            border-left-color: rgba(34, 211, 238, 0.1);
+            animation: orbit 2s linear infinite reverse;
+        }
+        .scanner-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22d3ee;
+            box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
+        }
+
+        /* ── Drag Over ── */
+        .drag-over {
+            outline: 2px dashed rgba(34, 211, 238, 0.5) !important;
+            outline-offset: -4px;
+            background-color: rgba(34, 211, 238, 0.03) !important;
+        }
+
+        /* ── Tab ── */
+        .tab-btn {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: #22d3ee;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            transform: translateX(-50%);
+        }
+        .tab-btn.active {
+            color: #22d3ee;
+        }
+        .tab-btn.active::after {
+            width: 100%;
+        }
+
+        /* ── Map Controls ── */
+        .map-ctrl-btn {
+            background: rgba(13, 17, 23, 0.85);
+            border: 1px solid #1e2a3a;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #8b9cb8;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .map-ctrl-btn:hover {
+            background: rgba(26, 35, 50, 0.9);
+            color: #c8d6e5;
+            border-color: #2a3a4e;
+        }
+        .map-ctrl-btn.active {
+            background: rgba(34, 211, 238, 0.12);
+            color: #22d3ee;
+            border-color: rgba(34, 211, 238, 0.3);
+        }
+
+        /* ── Coordinate Display ── */
+        .coord-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            color: #c8d6e5;
+        }
+
+        /* ── Confidence Badge ── */
+        .badge-high {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .badge-medium {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        .badge-low {
+            background: rgba(248, 113, 113, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        /* ── Modal ── */
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .modal-panel {
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #1e2a3a;
+            border-radius: 16px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 40px rgba(34, 211, 238, 0.03);
+        }
+
+        /* ── Primary Button ── */
+        .btn-primary {
+            background: linear-gradient(135deg, #0e7490, #0891b2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #0891b2, #22d3ee);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .btn-primary:hover::before { opacity: 1; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(34, 211, 238, 0.2); }
+        .btn-primary span, .btn-primary i { position: relative; z-index: 1; }
+
+        .btn-ghost {
+            background: rgba(30, 42, 58, 0.4);
+            color: #8b9cb8;
+            border: 1px solid #1e2a3a;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .btn-ghost:hover { background: rgba(30, 42, 58, 0.7); color: #c8d6e5; border-color: #2a3a4e; }
+
+        /* ── Input ── */
+        .input-field {
+            background: rgba(19, 25, 33, 0.8);
+            border: 1px solid #1e2a3a;
+            border-radius: 10px;
+            color: #c8d6e5;
+            padding: 12px 16px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .input-field::placeholder { color: #3a4a5e; }
+        .input-field:focus {
+            outline: none;
+            border-color: rgba(34, 211, 238, 0.4);
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #1e2a3a;
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: #c8d6e5;
+            font-size: 13px;
+            backdrop-filter: blur(16px);
+            z-index: 9000;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── Results entrance stagger ── */
+        .result-card { opacity: 0; }
+        .result-card.visible {
+            animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
     </style>
 </head>
-<body class="bg-dark-bg text-gray-100 antialiased">
+<body class="text-gray-100 antialiased">
 
     <!-- Header -->
-    <header class="bg-dark-surface border-b border-dark-border h-16 sticky top-0 z-50 shadow-lg">
-        <div class="h-full px-6 flex items-center justify-between">
-            <!-- Logo & Nav -->
+    <header class="h-14 sticky top-0 z-50 border-b border-dark-border" style="background: rgba(6, 8, 13, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <div class="h-full px-5 flex items-center justify-between">
             <div class="flex items-center space-x-8">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-map-marked-alt text-primary text-2xl"></i>
-                    <span class="text-xl font-bold text-white">GeoIntel</span>
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #0e7490, #22d3ee);">
+                        <i class="fas fa-crosshairs text-white text-xs"></i>
+                    </div>
+                    <span class="text-[15px] font-semibold tracking-tight text-white">GeoIntel</span>
+                    <span class="text-[10px] font-mono font-medium tracking-widest uppercase text-cyan-600 ml-1">v2</span>
                 </div>
-
-                <nav class="hidden md:flex items-center space-x-6">
-                    <button id="quickSearchBtn" class="text-gray-300 hover:text-white transition">
+                <nav class="hidden md:flex items-center">
+                    <button id="quickSearchBtn" class="text-[13px] text-gray-500 hover:text-gray-300 transition flex items-center gap-1.5">
+                        <i class="fas fa-search text-[10px]"></i>
                         Quick Search
                     </button>
                 </nav>
             </div>
-
-            <!-- Search & User -->
-            <div class="flex items-center space-x-4">
-
-                <!-- API Key Settings Button -->
-                <button id="apiKeyBtn" class="p-2 rounded-lg hover:bg-slate-700 transition" title="Configure Gemini API Key">
-                    <i class="fas fa-key text-gray-300"></i>
+            <div class="flex items-center space-x-2">
+                <button id="apiKeyBtn" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-dark-hover transition" title="Gemini API Key">
+                    <i class="fas fa-key text-[12px] text-gray-500"></i>
                 </button>
-
-                <!-- Maps API Key Settings Button -->
-                <button id="mapsApiKeyBtn" class="p-2 rounded-lg hover:bg-slate-700 transition" title="Configure Google Maps API Key">
-                    <i class="fas fa-map-marked-alt text-gray-300"></i>
-                </button>
-
-
             </div>
         </div>
     </header>
 
-    <!-- API Key Configuration Modal -->
-    <div id="apiKeyModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
-        <div class="bg-dark-surface rounded-lg p-8 max-w-md w-full mx-4 border border-dark-border shadow-2xl">
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-[2000] hidden">
+        <div class="modal-panel p-7 max-w-md w-full mx-4 animate-fade-up">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-white flex items-center">
-                    <i class="fas fa-key text-primary mr-3"></i>
-                    Gemini API Key
-                </h2>
-                <button id="closeApiModal" class="text-gray-400 hover:text-white transition">
-                    <i class="fas fa-times text-xl"></i>
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.15);">
+                        <i class="fas fa-key text-primary text-sm"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">API Configuration</h2>
+                        <p class="text-xs text-gray-500">Gemini API Key</p>
+                    </div>
+                </div>
+                <button id="closeApiModal" type="button" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-dark-hover transition text-gray-500 hover:text-gray-300">
+                    <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
 
-            <div class="mb-6">
-                <p class="text-gray-300 mb-4">Enter your Google Gemini API key to enable AI-powered location analysis.</p>
-                <div class="bg-slate-700 rounded-lg p-3 mb-4">
-                    <p class="text-sm text-gray-400 mb-2">
-                        <i class="fas fa-info-circle text-primary mr-2"></i>
-                        Don't have an API key?
-                    </p>
+            <div class="mb-5">
+                <div class="glass-card p-3 mb-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas fa-info-circle text-primary text-[11px]"></i>
+                        <span class="text-xs text-gray-400">Need an API key?</span>
+                    </div>
                     <a href="https://makersuite.google.com/app/apikey" target="_blank"
-                       class="text-primary hover:text-cyan-400 text-sm flex items-center">
-                        Get one from Google AI Studio
-                        <i class="fas fa-external-link-alt ml-2 text-xs"></i>
+                       class="text-primary hover:text-cyan-300 text-xs flex items-center gap-1 ml-5 transition">
+                        Google AI Studio <i class="fas fa-arrow-right text-[9px]"></i>
                     </a>
                 </div>
             </div>
 
-            <div class="mb-6">
-                <label for="apiKeyInput" class="block text-sm font-medium text-gray-300 mb-2">
-                    API Key
-                </label>
-                <input type="password"
-                       id="apiKeyInput"
-                       placeholder="Enter your Gemini API key..."
-                       class="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition">
-                <div id="apiKeyStatus" class="mt-2 text-sm hidden"></div>
+            <div class="mb-5">
+                <label for="apiKeyInput" class="block text-xs font-medium text-gray-400 mb-2 tracking-wide uppercase">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key..." class="input-field">
+                <div id="apiKeyStatus" class="mt-2 text-xs hidden"></div>
             </div>
 
-            <div class="flex space-x-3">
-                <button id="saveApiKey" class="flex-1 bg-primary hover:bg-cyan-600 text-white py-3 rounded-lg font-medium transition">
-                    <i class="fas fa-save mr-2"></i>Save Key
+            <div class="flex gap-3">
+                <button id="saveApiKeyBtn" type="button" class="flex-1 btn-primary flex items-center justify-center gap-2">
+                    <i class="fas fa-check text-xs"></i><span>Save Key</span>
                 </button>
-                <button id="cancelApiModal" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-medium transition">
-                    Cancel
-                </button>
+                <button id="cancelApiModal" type="button" class="flex-1 btn-ghost text-center">Cancel</button>
             </div>
 
-            <div class="mt-4 text-xs text-gray-500">
-                <i class="fas fa-lock mr-1"></i>
-                Your API key is stored locally in your browser and never sent to our servers.
-            </div>
+            <p class="mt-4 text-[11px] text-gray-600 flex items-center gap-1.5">
+                <i class="fas fa-lock text-[9px]"></i>
+                Stored locally in your browser. Never leaves your device.
+            </p>
         </div>
     </div>
 
-    <!-- Google Maps API Key Configuration Modal -->
-    <div id="mapsApiKeyModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
-        <div class="bg-dark-surface rounded-lg p-8 max-w-md w-full mx-4 border border-dark-border shadow-2xl">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-white flex items-center">
-                    <i class="fas fa-map-marked-alt text-primary mr-3"></i>
-                    Google Maps API Key
-                </h2>
-                <button id="closeMapsApiModal" class="text-gray-400 hover:text-white transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <div class="mb-6">
-                <p class="text-gray-300 mb-4">Enter your Google Maps API key to enable map features and street view.</p>
-                <div class="bg-slate-700 rounded-lg p-3 mb-4">
-                    <p class="text-sm text-gray-400 mb-2">
-                        <i class="fas fa-info-circle text-primary mr-2"></i>
-                        Don't have an API key?
-                    </p>
-                    <a href="https://console.cloud.google.com/google/maps-apis" target="_blank"
-                       class="text-primary hover:text-cyan-400 text-sm flex items-center">
-                        Get one from Google Cloud Console
-                        <i class="fas fa-external-link-alt ml-2 text-xs"></i>
-                    </a>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <label for="mapsApiKeyInput" class="block text-sm font-medium text-gray-300 mb-2">
-                    Google Maps API Key
-                </label>
-                <input type="password"
-                       id="mapsApiKeyInput"
-                       placeholder="Enter your Google Maps API key..."
-                       class="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition">
-                <div id="mapsApiKeyStatus" class="mt-2 text-sm hidden"></div>
-            </div>
-
-            <div class="flex space-x-3">
-                <button id="saveMapsApiKey" class="flex-1 bg-primary hover:bg-cyan-600 text-white py-3 rounded-lg font-medium transition">
-                    <i class="fas fa-save mr-2"></i>Save Key
-                </button>
-                <button id="cancelMapsApiModal" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-medium transition">
-                    Cancel
-                </button>
-            </div>
-
-            <div class="mt-4 text-xs text-gray-500">
-                <i class="fas fa-lock mr-1"></i>
-                Your API key is stored locally in your browser and never sent to our servers.
-            </div>
-        </div>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toastMsg"></span>
     </div>
 
     <!-- Main Content -->
-    <div class="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
+    <div class="flex flex-col lg:flex-row" style="height: calc(100vh - 56px);">
 
-        <!-- Left Column - Map -->
-        <div class="w-full lg:w-[65%] relative bg-slate-900">
+        <!-- Map Column -->
+        <div class="w-full lg:w-[65%] relative" style="background: #06080d;">
             <div class="map-container" id="mapContainer">
                 <div id="map"></div>
 
-                <!-- Upload Overlay (Initial State) -->
-                <div id="uploadOverlay" class="absolute inset-0 flex items-center justify-center bg-dark-bg bg-opacity-90 z-10">
-                    <div class="text-center max-w-md">
-                        <div class="w-32 h-32 mx-auto mb-6 border-4 border-dashed border-primary rounded-full flex items-center justify-center hover:bg-primary hover:bg-opacity-10 transition cursor-pointer" id="uploadCircle">
-                            <i class="fas fa-cloud-upload-alt text-5xl text-primary"></i>
+                <!-- Upload Overlay -->
+                <div id="uploadOverlay" class="absolute inset-0 flex items-center justify-center z-[1000]" style="background: rgba(6, 8, 13, 0.92);">
+                    <div class="text-center max-w-sm w-full px-6">
+                        <div class="upload-zone mx-auto mb-7 flex items-center justify-center" id="uploadCircle">
+                            <i class="fas fa-satellite-dish text-3xl text-gray-500 upload-icon"></i>
                         </div>
-                        <h2 class="text-2xl font-semibold mb-2">Upload an Image</h2>
-                        <p class="text-gray-400 mb-6">Drag & drop or click to browse</p>
-                        <div class="flex flex-col space-y-3 mb-6">
-                            <button id="browseBtn" class="bg-primary hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-medium transition">
-                                <i class="fas fa-folder-open mr-2"></i>
-                                Browse Files
+                        <h2 class="text-xl font-semibold text-white mb-1.5 tracking-tight">Drop your image</h2>
+                        <p class="text-sm text-gray-500 mb-7">or click to browse</p>
+
+                        <div class="space-y-2.5 mb-6">
+                            <button id="browseBtn" class="btn-primary w-full flex items-center justify-center gap-2">
+                                <i class="fas fa-folder-open text-xs"></i><span>Browse Files</span>
                             </button>
-                            <button id="reverseSearchBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition">
-                                <i class="fab fa-google mr-2"></i>
-                                Google Reverse Image Search
+                            <button id="reverseSearchBtn" class="btn-ghost w-full flex items-center justify-center gap-2 text-sm">
+                                <i class="fab fa-google text-xs"></i>Reverse Image Search
                             </button>
                         </div>
-                        
-                        <!-- Optional Context Fields -->
-                        <div class="w-full space-y-3 mb-4">
-                            <div>
-                                <label for="contextInput" class="block text-sm font-medium text-gray-300 mb-2">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    Additional Context (Optional)
+
+                        <!-- Context Fields -->
+                        <div class="space-y-3 mb-4">
+                            <div class="text-left">
+                                <label for="contextInput" class="block text-[11px] font-medium text-gray-500 mb-1.5 tracking-wide uppercase">
+                                    Context <span class="text-gray-600 normal-case tracking-normal">(optional)</span>
                                 </label>
-                                <textarea 
-                                    id="contextInput" 
-                                    placeholder="Any additional information about the image (e.g., time period, event, etc.)"
-                                    class="w-full bg-slate-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition resize-none"
-                                    rows="2"
-                                ></textarea>
+                                <textarea id="contextInput" placeholder="Time period, event, any known details..."
+                                    class="input-field resize-none text-sm" rows="2"></textarea>
                             </div>
-                            <div>
-                                <label for="guessInput" class="block text-sm font-medium text-gray-300 mb-2">
-                                    <i class="fas fa-map-marker-alt mr-1"></i>
-                                    Location Guess (Optional)
+                            <div class="text-left">
+                                <label for="guessInput" class="block text-[11px] font-medium text-gray-500 mb-1.5 tracking-wide uppercase">
+                                    Location guess <span class="text-gray-600 normal-case tracking-normal">(optional)</span>
                                 </label>
-                                <input 
-                                    type="text" 
-                                    id="guessInput"
-                                    placeholder="Your guess of where this might be (e.g., Paris, France)"
-                                    class="w-full bg-slate-700 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                                />
+                                <input type="text" id="guessInput" placeholder="e.g. Paris, France" class="input-field text-sm" />
                             </div>
                             <div class="flex justify-end">
-                                <button id="clearFieldsBtn" class="text-xs text-gray-400 hover:text-gray-300 transition">
-                                    <i class="fas fa-times mr-1"></i>Clear fields
-                                </button>
+                                <button id="clearFieldsBtn" class="text-[11px] text-gray-600 hover:text-gray-400 transition">Clear</button>
                             </div>
                         </div>
-                        
+
                         <input type="file" id="fileInput" accept="image/*" class="hidden">
                         <input type="file" id="reverseSearchInput" accept="image/*" class="hidden">
-                        <div class="text-xs text-gray-500 mt-4">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Make sure to configure your Gemini API key in settings
-                        </div>
+                        <p class="text-[11px] text-gray-600 mt-5">
+                            <i class="fas fa-key text-[9px] mr-1"></i>
+                            Configure your Gemini API key to start
+                        </p>
                     </div>
                 </div>
 
                 <!-- Processing Overlay -->
-                <div id="processingOverlay" class="absolute inset-0 flex items-center justify-center bg-dark-bg bg-opacity-90 z-10 hidden">
+                <div id="processingOverlay" class="absolute inset-0 flex items-center justify-center z-[1000] hidden" style="background: rgba(6, 8, 13, 0.94);">
                     <div class="text-center">
-                        <div class="loading-spinner mx-auto mb-4"></div>
-                        <p class="text-xl font-medium">Analyzing image...</p>
-                        <p class="text-gray-400 mt-2">AI is identifying the location</p>
+                        <div class="relative w-[100px] h-[100px] mx-auto mb-6 flex items-center justify-center">
+                            <div class="scanner-orbit-outer absolute inset-0 flex items-center justify-center">
+                                <div class="scanner-orbit flex items-center justify-center">
+                                    <div class="scanner-dot"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-[15px] font-medium text-white mb-1">Analyzing image</p>
+                        <p class="text-sm text-gray-500" id="processingStatus">Initializing AI pipeline...</p>
                     </div>
                 </div>
 
-                <!-- Map Controls Overlay -->
-                <div class="absolute bottom-6 right-6 flex flex-col space-y-2 z-20" id="mapControls" style="display: none;">
-                    <!-- View Mode Buttons -->
-                    <div class="flex space-x-2">
-                        <button id="mapViewBtn" class="bg-dark-surface border border-dark-border px-4 py-2 rounded-lg hover:bg-slate-700 transition font-medium">
-                            <i class="fas fa-map mr-2"></i>Map
+                <!-- Map Controls -->
+                <div class="absolute bottom-5 right-5 flex flex-col gap-2 z-[1000]" id="mapControls" style="display: none;">
+                    <div class="flex gap-1.5">
+                        <button id="mapViewBtn" class="map-ctrl-btn flex items-center gap-1.5">
+                            <i class="fas fa-map text-[11px]"></i>Map
                         </button>
-                        <button id="view3DBtn" class="bg-dark-surface border border-dark-border px-4 py-2 rounded-lg hover:bg-slate-700 transition font-medium">
-                            <i class="fas fa-cube mr-2"></i>3D
-                        </button>
-                        <button id="streetViewBtn" class="bg-dark-surface border border-dark-border px-4 py-2 rounded-lg hover:bg-slate-700 transition font-medium">
-                            <i class="fas fa-street-view mr-2"></i>Street
+                        <button id="streetViewBtn" class="map-ctrl-btn flex items-center gap-1.5">
+                            <i class="fas fa-street-view text-[11px]"></i>Street View
                         </button>
                     </div>
-
-                    <!-- 3D Rotation Controls (Hidden by default) -->
-                    <div id="rotationControls" class="bg-dark-surface border border-dark-border rounded-lg p-2 hidden">
-                        <div class="text-xs text-gray-400 mb-2 text-center">Rotate & Tilt</div>
-                        <div class="grid grid-cols-3 gap-1">
-                            <div></div>
-                            <button id="tiltUp" class="bg-slate-700 hover:bg-slate-600 p-2 rounded transition">
-                                <i class="fas fa-chevron-up"></i>
-                            </button>
-                            <div></div>
-                            <button id="rotateLeft" class="bg-slate-700 hover:bg-slate-600 p-2 rounded transition">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <button id="resetView" class="bg-primary hover:bg-cyan-600 p-2 rounded transition text-xs">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <button id="rotateRight" class="bg-slate-700 hover:bg-slate-600 p-2 rounded transition">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                            <div></div>
-                            <button id="tiltDown" class="bg-slate-700 hover:bg-slate-600 p-2 rounded transition">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div></div>
-                        </div>
-                    </div>
-
-                    <!-- Map Type Selector -->
-                    <select id="mapTypeSelector" class="bg-dark-surface border border-dark-border px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition font-medium cursor-pointer">
-                        <option value="roadmap">Roadmap</option>
-                        <option value="satellite" selected>Satellite</option>
-                        <option value="hybrid">Hybrid</option>
+                    <select id="mapTypeSelector" class="map-ctrl-btn text-[12px] cursor-pointer appearance-none pr-8" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;10&quot; height=&quot;6&quot; viewBox=&quot;0 0 10 6&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cpath d=&quot;M1 1l4 4 4-4&quot; stroke=&quot;%238b9cb8&quot; fill=&quot;none&quot; stroke-width=&quot;1.5&quot;/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 10px center;">
+                        <option value="dark">Dark</option>
+                        <option value="street">Street</option>
+                        <option value="satellite">Satellite</option>
                         <option value="terrain">Terrain</option>
                     </select>
-                </div>
-
-                <!-- Map Attribution -->
-                <div class="absolute bottom-2 left-2 text-xs text-gray-500 z-20 bg-dark-bg bg-opacity-70 px-2 py-1 rounded">
-                    Google Maps
                 </div>
             </div>
         </div>
 
-        <!-- Right Column - Results Panel -->
-        <div class="w-full lg:w-[35%] bg-dark-surface border-l border-dark-border overflow-y-auto">
+        <!-- Results Panel -->
+        <div class="w-full lg:w-[35%] border-l border-dark-border overflow-y-auto" style="background: #0a0e15;">
 
             <!-- Tabs -->
-            <div class="border-b border-dark-border flex">
-                <button id="resultsTab" class="flex-1 px-6 py-4 font-medium tab-active transition">
-                    Results
-                </button>
-                <button id="similarTab" class="flex-1 px-6 py-4 font-medium text-gray-400 hover:text-white transition">
-                    Similar Images
-                </button>
+            <div class="border-b border-dark-border flex px-5">
+                <button id="resultsTab" class="tab-btn active flex-1 py-3.5 text-[13px] font-medium transition">Results</button>
+                <button id="similarTab" class="tab-btn flex-1 py-3.5 text-[13px] font-medium text-gray-600 transition">Similar Images</button>
             </div>
 
-            <!-- Results Tab Content -->
-            <div id="resultsContent" class="p-6 space-y-6">
-
-                <!-- No Results State -->
-                <div id="noResults" class="text-center py-12">
-                    <i class="fas fa-image text-6xl text-gray-600 mb-4"></i>
-                    <p class="text-gray-400 text-lg">Upload an image to begin analysis</p>
+            <!-- Results Content -->
+            <div id="resultsContent" class="p-5 space-y-4">
+                <div id="noResults" class="text-center py-16">
+                    <div class="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center" style="background: rgba(19, 25, 33, 0.8); border: 1px solid #1e2a3a;">
+                        <i class="fas fa-satellite text-xl text-gray-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">No analysis yet</p>
+                    <p class="text-xs text-gray-600">Upload an image to begin</p>
                 </div>
 
-                <!-- Results (Hidden Initially) -->
-                <div id="resultsData" class="space-y-6 hidden">
+                <div id="resultsData" class="space-y-4 hidden">
 
-                    <!-- Uploaded Image Preview -->
-                    <div class="bg-slate-800 rounded-lg overflow-hidden">
-                        <img id="uploadedImage" src="" alt="Uploaded" class="w-full h-48 object-cover">
+                    <!-- Image Preview -->
+                    <div class="result-card glass-card overflow-hidden" style="animation-delay: 0ms;">
+                        <img id="uploadedImage" src="" alt="Uploaded" class="w-full h-44 object-cover">
                     </div>
 
-                    <!-- AI Explanation Card -->
-                    <div class="bg-slate-800 rounded-lg p-5">
-                        <div class="flex items-start space-x-3 mb-3">
-                            <i class="fas fa-brain text-primary text-xl mt-1"></i>
-                            <h3 class="font-semibold text-lg">AI Analysis</h3>
+                    <!-- AI Analysis -->
+                    <div class="result-card glass-card p-5" style="animation-delay: 80ms;">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(34, 211, 238, 0.1);">
+                                <i class="fas fa-brain text-primary text-[11px]"></i>
+                            </div>
+                            <h3 class="text-sm font-semibold text-white">AI Analysis</h3>
                         </div>
-                        <p id="aiExplanation" class="text-gray-300 leading-relaxed">
-                            The street signs, architecture, and vegetation point to Berlin, Germany. The distinctive TV tower (Fernsehturm) visible in the background, along with characteristic East German-era buildings and the specific style of street furniture, confirms this location near Alexanderplatz.
-                        </p>
+                        <div id="aiExplanation" class="text-[13px] text-gray-400 leading-[1.7] space-y-2" style="white-space: pre-line;"></div>
                     </div>
 
-                    <!-- User Input Summary (Hidden by default) -->
-                    <div id="userInputSummary" class="bg-slate-800 rounded-lg p-5 hidden">
-                        <div class="flex items-start space-x-3 mb-3">
-                            <i class="fas fa-user text-primary text-xl mt-1"></i>
-                            <h3 class="font-semibold text-lg">Your Input</h3>
+                    <!-- User Input Summary -->
+                    <div id="userInputSummary" class="result-card glass-card p-5 hidden" style="animation-delay: 120ms;">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(34, 211, 238, 0.1);">
+                                <i class="fas fa-user text-primary text-[11px]"></i>
+                            </div>
+                            <h3 class="text-sm font-semibold text-white">Your Input</h3>
                         </div>
                         <div class="space-y-2">
                             <div id="providedContext" class="hidden">
-                                <span class="text-gray-400 text-sm">Context:</span>
-                                <p class="text-gray-300 text-sm mt-1"></p>
+                                <span class="text-[11px] text-gray-500 uppercase tracking-wide">Context</span>
+                                <p class="text-[13px] text-gray-400 mt-0.5"></p>
                             </div>
                             <div id="providedGuess" class="hidden">
-                                <span class="text-gray-400 text-sm">Your guess:</span>
-                                <p class="text-gray-300 text-sm mt-1"></p>
+                                <span class="text-[11px] text-gray-500 uppercase tracking-wide">Guess</span>
+                                <p class="text-[13px] text-gray-400 mt-0.5"></p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Location Details Card -->
-                    <div class="bg-slate-800 rounded-lg p-5">
-                        <h3 class="font-semibold text-lg mb-4">Location Details</h3>
+                    <!-- Location Details -->
+                    <div class="result-card glass-card p-5" style="animation-delay: 160ms;">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-white">Location</h3>
+                            <span id="confidenceBadge" class="text-[10px] font-mono font-medium px-2.5 py-1 rounded-full badge-high tracking-wide uppercase hidden">High</span>
+                        </div>
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-400">Latitude:</span>
-                                <div class="flex items-center space-x-2">
-                                    <span id="latitude" class="font-mono">52.5163</span>
-                                    <button class="text-primary hover:text-cyan-400 transition" onclick="copyToClipboard('52.5163')">
+                                <span class="text-[12px] text-gray-500">City</span>
+                                <span id="city" class="text-sm font-medium text-white">--</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[12px] text-gray-500">Country</span>
+                                <span id="country" class="text-sm font-medium text-white">--</span>
+                            </div>
+                            <div class="h-px bg-dark-border my-1"></div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[12px] text-gray-500">Lat</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="latitude" class="coord-value">--</span>
+                                    <button class="text-gray-600 hover:text-primary transition text-[11px]" onclick="copyToClipboard(document.getElementById('latitude').textContent)">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-400">Longitude:</span>
-                                <div class="flex items-center space-x-2">
-                                    <span id="longitude" class="font-mono">13.4049</span>
-                                    <button class="text-primary hover:text-cyan-400 transition" onclick="copyToClipboard('13.4049')">
+                                <span class="text-[12px] text-gray-500">Lng</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="longitude" class="coord-value">--</span>
+                                    <button class="text-gray-600 hover:text-primary transition text-[11px]" onclick="copyToClipboard(document.getElementById('longitude').textContent)">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-400">City:</span>
-                                <span id="city" class="font-medium">Berlin</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-400">Country:</span>
-                                <span id="country" class="font-medium">Germany</span>
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="flex space-x-3">
-                        <button id="exportReportBtn" class="flex-1 bg-primary hover:bg-cyan-600 text-white py-3 rounded-lg font-medium transition">
-                            <i class="fas fa-download mr-2"></i>Export Report
+                    <!-- Actions -->
+                    <div class="result-card flex gap-2.5" style="animation-delay: 240ms;">
+                        <button id="exportReportBtn" class="btn-primary flex-1 flex items-center justify-center gap-2 text-[13px] py-3">
+                            <i class="fas fa-download text-[11px]"></i><span>Export Report</span>
                         </button>
-                        <button id="shareBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-medium transition">
-                            <i class="fas fa-share-alt mr-2"></i>Share
-                        </button>
+                       
                     </div>
 
-                    <!-- Feedback Section -->
-                    <div class="bg-slate-800 rounded-lg p-5">
-                        <p class="text-center text-gray-400 mb-3">How'd we do?</p>
-                        <div class="flex justify-center space-x-6">
-                            <button class="feedback-btn text-3xl hover:scale-110 transition transform" onclick="submitFeedback('happy')">
-                                <i class="far fa-smile text-green-400"></i>
-                            </button>
-                            <button class="feedback-btn text-3xl hover:scale-110 transition transform" onclick="submitFeedback('neutral')">
-                                <i class="far fa-meh text-yellow-400"></i>
-                            </button>
-                            <button class="feedback-btn text-3xl hover:scale-110 transition transform" onclick="submitFeedback('sad')">
-                                <i class="far fa-frown text-red-400"></i>
-                            </button>
-                        </div>
-                    </div>
+                   
 
                 </div>
             </div>
 
-            <!-- Similar Images Tab Content -->
-            <div id="similarContent" class="p-6 hidden">
-                <!-- No Similar Images State -->
-                <div id="noSimilarImages" class="text-center py-12">
-                    <i class="fas fa-images text-6xl text-gray-600 mb-4"></i>
-                    <p class="text-gray-400 text-lg mb-4">Reverse image search results will appear here</p>
-                    <button id="performReverseSearch" class="bg-primary hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-medium transition hidden">
-                        <i class="fab fa-google mr-2"></i>
-                        Search with Google Lens
+            <!-- Similar Images Content -->
+            <div id="similarContent" class="p-5 hidden">
+                <div id="noSimilarImages" class="text-center py-16">
+                    <div class="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center" style="background: rgba(19, 25, 33, 0.8); border: 1px solid #1e2a3a;">
+                        <i class="fas fa-images text-xl text-gray-600"></i>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">No reverse search yet</p>
+                    <p class="text-xs text-gray-600 mb-5">Results appear after analysis</p>
+                    <button id="performReverseSearch" class="btn-primary hidden">
+                        <i class="fab fa-google text-xs mr-2"></i><span>Search with Google Lens</span>
                     </button>
                 </div>
-
-                <!-- Similar Images Results -->
                 <div id="similarImagesResults" class="space-y-4 hidden">
-                    <div class="bg-slate-800 rounded-lg p-4 mb-4">
-                        <h3 class="font-semibold text-lg mb-2 flex items-center">
-                            <i class="fab fa-google text-primary mr-2"></i>
-                            Google Reverse Image Search
+                    <div class="glass-card p-4">
+                        <h3 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+                            <i class="fab fa-google text-primary text-xs"></i>
+                            Reverse Image Search
                         </h3>
-                        <p class="text-gray-400 text-sm mb-3">Find similar images and sources online</p>
-                        <button id="openGoogleLens" class="bg-primary hover:bg-cyan-600 text-white px-4 py-2 rounded-lg font-medium transition w-full">
-                            <i class="fas fa-external-link-alt mr-2"></i>
-                            Open in Google Lens
+                        <p class="text-xs text-gray-500 mb-3">Find similar images and sources</p>
+                        <button id="openGoogleLens" class="btn-primary w-full flex items-center justify-center gap-2 text-[13px]">
+                            <i class="fas fa-external-link-alt text-[10px]"></i><span>Open in Google Lens</span>
                         </button>
                     </div>
-
-                    <!-- Results will be populated dynamically -->
-                    <div id="reverseSearchResults" class="grid grid-cols-1 gap-4">
-                        <!-- Dynamic content -->
-                    </div>
+                    <div id="reverseSearchResults" class="grid grid-cols-1 gap-3"></div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- Google Maps API -->
-    <!-- The Maps API will be loaded dynamically based on stored API key -->
-
     <script>
         let map;
         let marker;
-        let streetView;
+        let currentTileLayer;
         let currentImageFile = null;
         let currentAnalysisResult = null;
-        let googleMapsLoaded = false;
+        let currentLocationLat = null;
+        let currentLocationLng = null;
 
-        // API Configuration
         const API_BASE_URL = window.location.origin;
+        const STORAGE_KEYS = { API_KEY: 'geointel_gemini_api_key' };
 
-        // Local Storage Keys
-        const STORAGE_KEYS = {
-            API_KEY: 'geointel_gemini_api_key',
-            MAPS_API_KEY: 'geointel_maps_api_key'
+        const TILE_LAYERS = {
+            dark: {
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+                options: { subdomains: 'abcd', maxZoom: 20 }
+            },
+            street: {
+                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                options: { maxZoom: 19 }
+            },
+            satellite: {
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                attribution: '&copy; Esri',
+                options: { maxZoom: 18 }
+            },
+            terrain: {
+                url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+                options: { maxZoom: 17 }
+            }
         };
 
-        // Load Google Maps API dynamically
-        function loadGoogleMapsAPI() {
-            const mapsApiKey = localStorage.getItem(STORAGE_KEYS.MAPS_API_KEY);
-
-            if (!mapsApiKey) {
-                console.warn('Google Maps API key not configured');
-                return false;
-            }
-
-            if (googleMapsLoaded) {
-                return true;
-            }
-
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsApiKey}&callback=initMap`;
-            script.async = true;
-            script.defer = true;
-            script.onerror = () => {
-                alert('Failed to load Google Maps. Please check your API key.');
-            };
-            document.head.appendChild(script);
-
-            googleMapsLoaded = true;
-            return true;
+        // ── Toast ──
+        function showToast(msg, duration = 2500) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
         }
 
-        // Initialize Map
+        // ── Map ──
         function initMap() {
-            console.log('Initializing Google Maps...');
-            const mapOptions = {
-                center: { lat: 20, lng: 0 },
-                zoom: 2,
-                mapTypeId: 'satellite',
-                tilt: 0,
-                heading: 0,
-                mapId: '90f87356969d889c', // For advanced 3D features
-                styles: [
-                    { elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-                    { elementType: "labels.text.stroke", stylers: [{ color: "#0f172a" }] },
-                    { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
-                    {
-                        featureType: "administrative.locality",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#06b6d4" }],
-                    },
-                    {
-                        featureType: "poi",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#94a3b8" }],
-                    },
-                    {
-                        featureType: "poi.park",
-                        elementType: "geometry",
-                        stylers: [{ color: "#1e3a2e" }],
-                    },
-                    {
-                        featureType: "road",
-                        elementType: "geometry",
-                        stylers: [{ color: "#334155" }],
-                    },
-                    {
-                        featureType: "road",
-                        elementType: "geometry.stroke",
-                        stylers: [{ color: "#1e293b" }],
-                    },
-                    {
-                        featureType: "road.highway",
-                        elementType: "geometry",
-                        stylers: [{ color: "#475569" }],
-                    },
-                    {
-                        featureType: "water",
-                        elementType: "geometry",
-                        stylers: [{ color: "#0c1e2e" }],
-                    },
-                    {
-                        featureType: "water",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#64748b" }],
-                    },
-                ],
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                rotateControl: true,
-                tiltControl: true,
-            };
-
-            try {
-                map = new google.maps.Map(document.getElementById("map"), mapOptions);
-                console.log('Google Maps initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize Google Maps:', error);
-                showMapPlaceholder({ lat: 0, lng: 0 }, { city: 'Unknown', country: 'Unknown' });
-            }
+            map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: true });
+            setTileLayer('dark');
         }
 
-        // Tab Switching
+        function setTileLayer(name) {
+            const layer = TILE_LAYERS[name];
+            if (!layer) return;
+            if (currentTileLayer) map.removeLayer(currentTileLayer);
+            currentTileLayer = L.tileLayer(layer.url, { attribution: layer.attribution, ...layer.options }).addTo(map);
+        }
+
+        // ── Tabs ──
         const resultsTab = document.getElementById('resultsTab');
         const similarTab = document.getElementById('similarTab');
         const resultsContent = document.getElementById('resultsContent');
         const similarContent = document.getElementById('similarContent');
 
         resultsTab.addEventListener('click', () => {
-            resultsTab.classList.add('tab-active', 'text-primary');
-            resultsTab.classList.remove('text-gray-400');
-            similarTab.classList.remove('tab-active', 'text-primary');
-            similarTab.classList.add('text-gray-400');
-            resultsContent.classList.remove('hidden');
-            similarContent.classList.add('hidden');
+            resultsTab.classList.add('active'); resultsTab.classList.remove('text-gray-600');
+            similarTab.classList.remove('active'); similarTab.classList.add('text-gray-600');
+            resultsContent.classList.remove('hidden'); similarContent.classList.add('hidden');
         });
-
         similarTab.addEventListener('click', () => {
-            similarTab.classList.add('tab-active', 'text-primary');
-            similarTab.classList.remove('text-gray-400');
-            resultsTab.classList.remove('tab-active', 'text-primary');
-            resultsTab.classList.add('text-gray-400');
-            similarContent.classList.remove('hidden');
-            resultsContent.classList.add('hidden');
+            similarTab.classList.add('active'); similarTab.classList.remove('text-gray-600');
+            resultsTab.classList.remove('active'); resultsTab.classList.add('text-gray-600');
+            similarContent.classList.remove('hidden'); resultsContent.classList.add('hidden');
         });
 
-        // File Upload Handling
+        // ── Upload ──
         const fileInput = document.getElementById('fileInput');
         const browseBtn = document.getElementById('browseBtn');
         const uploadCircle = document.getElementById('uploadCircle');
@@ -669,677 +810,304 @@
         browseBtn.addEventListener('click', () => fileInput.click());
         uploadCircle.addEventListener('click', () => fileInput.click());
         quickSearchBtn.addEventListener('click', () => fileInput.click());
-
         fileInput.addEventListener('change', handleFileUpload);
 
-        // Clear fields button
         document.getElementById('clearFieldsBtn').addEventListener('click', () => {
             document.getElementById('contextInput').value = '';
             document.getElementById('guessInput').value = '';
         });
 
-        // Drag and Drop
-        mapContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            mapContainer.classList.add('drag-over');
-        });
-
-        mapContainer.addEventListener('dragleave', () => {
-            mapContainer.classList.remove('drag-over');
-        });
-
+        mapContainer.addEventListener('dragover', (e) => { e.preventDefault(); mapContainer.classList.add('drag-over'); });
+        mapContainer.addEventListener('dragleave', () => mapContainer.classList.remove('drag-over'));
         mapContainer.addEventListener('drop', (e) => {
             e.preventDefault();
             mapContainer.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                processImage(file);
-            }
+            if (file && file.type.startsWith('image/')) processImage(file);
         });
 
         function handleFileUpload(e) {
             const file = e.target.files[0];
-            if (file) {
-                currentImageFile = file;
-                processImage(file);
-            }
+            if (file) { currentImageFile = file; processImage(file); }
         }
 
-        // API Key Management Functions
-        function getStoredApiKey() {
-            return localStorage.getItem(STORAGE_KEYS.API_KEY);
-        }
+        // ── API Key ──
+        function getStoredApiKey() { return localStorage.getItem(STORAGE_KEYS.API_KEY); }
+        function storeApiKey(key) { localStorage.setItem(STORAGE_KEYS.API_KEY, key); updateApiKeyIndicator(); }
 
-        function saveApiKey(apiKey) {
-            localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
+        function updateApiKeyIndicator() {
+            const icon = document.getElementById('apiKeyBtn').querySelector('i');
+            if (getStoredApiKey()) { icon.classList.remove('text-gray-500'); icon.classList.add('text-emerald-400'); }
+            else { icon.classList.remove('text-emerald-400'); icon.classList.add('text-gray-500'); }
         }
 
         function showApiKeyModal() {
             document.getElementById('apiKeyModal').classList.remove('hidden');
-            const savedKey = getStoredApiKey();
-            if (savedKey) {
-                document.getElementById('apiKeyInput').value = savedKey;
-            }
+            const saved = getStoredApiKey();
+            if (saved) document.getElementById('apiKeyInput').value = saved;
+        }
+        function hideApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+
+        function showApiKeyStatus(msg, isError = false) {
+            const el = document.getElementById('apiKeyStatus');
+            el.textContent = msg;
+            el.className = `mt-2 text-xs ${isError ? 'text-red-400' : 'text-emerald-400'}`;
+            el.classList.remove('hidden');
         }
 
-        function hideApiKeyModal() {
-            document.getElementById('apiKeyModal').classList.add('hidden');
+        function openGoogleReverseSearch() {
+            window.open('https://lens.google.com/', '_blank');
+            showToast('Google Lens opened in new tab');
         }
 
-        function showApiKeyStatus(message, isError = false) {
-            const statusDiv = document.getElementById('apiKeyStatus');
-            statusDiv.textContent = message;
-            statusDiv.className = `mt-2 text-sm ${isError ? 'text-red-400' : 'text-green-400'}`;
-            statusDiv.classList.remove('hidden');
+        // ── Processing Status Animation ──
+        const processingMessages = [
+            'Initializing AI pipeline...',
+            'Scanning visual features...',
+            'Analyzing text & signage...',
+            'Evaluating architecture...',
+            'Cross-referencing location data...',
+            'Narrowing coordinates...',
+            'Validating results...'
+        ];
+        let processingInterval = null;
+
+        function startProcessingAnimation() {
+            let idx = 0;
+            const statusEl = document.getElementById('processingStatus');
+            statusEl.textContent = processingMessages[0];
+            processingInterval = setInterval(() => {
+                idx = (idx + 1) % processingMessages.length;
+                statusEl.style.opacity = '0';
+                setTimeout(() => {
+                    statusEl.textContent = processingMessages[idx];
+                    statusEl.style.opacity = '1';
+                }, 200);
+            }, 2200);
         }
 
-        // Google Reverse Image Search
-        function openGoogleReverseSearch(file) {
-            // Google Lens doesn't support direct file upload via URL
-            // So we'll open Google Images and the user can upload there
-            const searchUrl = 'https://lens.google.com/';
-            window.open(searchUrl, '_blank');
-
-            // Show instructions
-            alert('Google Lens will open in a new tab. Click the search icon and upload your image to perform a reverse image search.');
+        function stopProcessingAnimation() {
+            if (processingInterval) { clearInterval(processingInterval); processingInterval = null; }
         }
 
+        // ── Process Image ──
         async function processImage(file) {
-            // Check if API key is configured
             const apiKey = getStoredApiKey();
-            if (!apiKey) {
-                alert('Please configure your Gemini API key first.');
-                showApiKeyModal();
-                return;
-            }
+            if (!apiKey) { showToast('Configure your Gemini API key first'); showApiKeyModal(); return; }
 
-            // Show processing overlay
             uploadOverlay.classList.add('hidden');
             processingOverlay.classList.remove('hidden');
+            startProcessingAnimation();
 
-            // Read file and display
             const reader = new FileReader();
             reader.onload = async (e) => {
                 document.getElementById('uploadedImage').src = e.target.result;
-
-                // Get context and guess values from input fields
                 const contextValue = document.getElementById('contextInput').value.trim();
                 const guessValue = document.getElementById('guessInput').value.trim();
 
-                // Send to backend for analysis
                 try {
-                    const base64Image = e.target.result;
                     const response = await fetch(`${API_BASE_URL}/api/analyze`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            image: base64Image,
+                            image: e.target.result,
                             api_key: apiKey,
                             context: contextValue || null,
                             guess: guessValue || null
                         })
                     });
-
                     const result = await response.json();
-
-                    if (response.ok && !result.error) {
-                        showResults(result);
-                    } else {
+                    stopProcessingAnimation();
+                    if (response.ok && !result.error) { showResults(result); }
+                    else {
                         processingOverlay.classList.add('hidden');
                         uploadOverlay.classList.remove('hidden');
-                        alert(`Error: ${result.error || 'Failed to analyze image'}\n${result.details || ''}`);
+                        showToast(`Error: ${result.error || 'Analysis failed'}`);
                     }
                 } catch (error) {
+                    stopProcessingAnimation();
                     processingOverlay.classList.add('hidden');
                     uploadOverlay.classList.remove('hidden');
-                    alert(`Network error: ${error.message}`);
-                    console.error('Analysis error:', error);
+                    showToast(`Network error: ${error.message}`);
                 }
             };
             reader.readAsDataURL(file);
         }
 
+        // ── Show Results ──
         function showResults(analysisResult) {
-            // Hide processing overlay
             processingOverlay.classList.add('hidden');
-
-            // Store result for export
             currentAnalysisResult = analysisResult;
 
-            // Show results
             document.getElementById('noResults').classList.add('hidden');
             document.getElementById('resultsData').classList.remove('hidden');
             document.getElementById('mapControls').style.display = 'flex';
-
-            // Show reverse search button
             document.getElementById('performReverseSearch').classList.remove('hidden');
             document.getElementById('similarImagesResults').classList.remove('hidden');
 
-            // Extract location data
             const locations = analysisResult.locations || [];
             const interpretation = analysisResult.interpretation || 'No interpretation available';
 
-            // Show user input if provided
-            const contextValue = document.getElementById('contextInput').value.trim();
-            const guessValue = document.getElementById('guessInput').value.trim();
-            
-            if (contextValue || guessValue) {
+            // User input
+            const ctx = document.getElementById('contextInput').value.trim();
+            const guess = document.getElementById('guessInput').value.trim();
+            if (ctx || guess) {
                 document.getElementById('userInputSummary').classList.remove('hidden');
-                
-                if (contextValue) {
-                    document.getElementById('providedContext').classList.remove('hidden');
-                    document.querySelector('#providedContext p').textContent = contextValue;
-                } else {
-                    document.getElementById('providedContext').classList.add('hidden');
-                }
-                
-                if (guessValue) {
-                    document.getElementById('providedGuess').classList.remove('hidden');
-                    document.querySelector('#providedGuess p').textContent = guessValue;
-                } else {
-                    document.getElementById('providedGuess').classList.add('hidden');
-                }
+                if (ctx) { document.getElementById('providedContext').classList.remove('hidden'); document.querySelector('#providedContext p').textContent = ctx; }
+                else document.getElementById('providedContext').classList.add('hidden');
+                if (guess) { document.getElementById('providedGuess').classList.remove('hidden'); document.querySelector('#providedGuess p').textContent = guess; }
+                else document.getElementById('providedGuess').classList.add('hidden');
             } else {
                 document.getElementById('userInputSummary').classList.add('hidden');
             }
 
             if (locations.length > 0) {
-                const primaryLocation = locations[0];
-                const coordinates = primaryLocation.coordinates || { latitude: 0, longitude: 0 };
-                const location = {
-                    lat: coordinates.latitude,
-                    lng: coordinates.longitude
-                };
+                const loc = locations[0];
+                const coords = loc.coordinates || { latitude: 0, longitude: 0 };
+                currentLocationLat = coords.latitude;
+                currentLocationLng = coords.longitude;
 
-                // Update UI with location details
-                document.getElementById('aiExplanation').textContent = interpretation;
-                document.getElementById('latitude').textContent = coordinates.latitude.toFixed(6);
-                document.getElementById('longitude').textContent = coordinates.longitude.toFixed(6);
-                document.getElementById('city').textContent = primaryLocation.city || 'Unknown';
-                document.getElementById('country').textContent = primaryLocation.country || 'Unknown';
+                document.getElementById('aiExplanation').innerHTML = formatAnalysis(interpretation);
+                document.getElementById('latitude').textContent = coords.latitude.toFixed(6);
+                document.getElementById('longitude').textContent = coords.longitude.toFixed(6);
+                document.getElementById('city').textContent = loc.city || 'Unknown';
+                document.getElementById('country').textContent = loc.country || 'Unknown';
 
-                // Update copy buttons with correct coordinates
-                const latCopyBtn = document.getElementById('latitude').nextElementSibling;
-                const lngCopyBtn = document.getElementById('longitude').nextElementSibling;
-                latCopyBtn.onclick = () => copyToClipboard(coordinates.latitude.toFixed(6));
-                lngCopyBtn.onclick = () => copyToClipboard(coordinates.longitude.toFixed(6));
+                // Confidence badge
+                const badge = document.getElementById('confidenceBadge');
+                const conf = (loc.confidence || 'Medium').toLowerCase();
+                badge.textContent = loc.confidence || 'Medium';
+                badge.className = `text-[10px] font-mono font-medium px-2.5 py-1 rounded-full tracking-wide uppercase badge-${conf}`;
 
-                // Try to load Google Maps if not already loaded
-                if (!map || typeof google === 'undefined' || !google.maps) {
-                    const mapsApiKey = localStorage.getItem(STORAGE_KEYS.MAPS_API_KEY);
-                    if (mapsApiKey && !googleMapsLoaded) {
-                        console.log('Attempting to load Google Maps for results display...');
-                        loadGoogleMapsAPI();
-                        // Wait a moment for the map to load, then try again
-                        setTimeout(() => {
-                            if (map && typeof google !== 'undefined' && google.maps) {
-                                updateMapWithLocation(location, primaryLocation);
-                            }
-                        }, 2000);
-                    } else if (!mapsApiKey) {
-                        showMapPlaceholder(location, primaryLocation);
-                    }
+                // Copy buttons
+                document.getElementById('latitude').nextElementSibling.onclick = () => copyToClipboard(coords.latitude.toFixed(6));
+                document.getElementById('longitude').nextElementSibling.onclick = () => copyToClipboard(coords.longitude.toFixed(6));
+
+                // Map marker
+                const title = `${loc.city || 'Unknown'}, ${loc.country || 'Unknown'}`;
+                if (marker) map.removeLayer(marker);
+
+                marker = L.marker([coords.latitude, coords.longitude])
+                    .addTo(map)
+                    .bindPopup(`<strong style="font-size:13px;">${title}</strong><br><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b9cb8;">${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}</span><br><a href="https://www.google.com/maps?q=${coords.latitude},${coords.longitude}" target="_blank" style="font-size:11px;">Open in Google Maps &rarr;</a>`)
+                    .openPopup();
+
+                const el = marker.getElement();
+                if (el) {
+                    el.style.animation = 'marker-bounce 0.6s ease-out';
+                    el.addEventListener('animationend', () => el.style.animation = '', { once: true });
                 }
 
-                // Drop pin on map (only if Google Maps is loaded)
-                if (map && typeof google !== 'undefined' && google.maps) {
-                    map.setCenter(location);
-                    map.setZoom(18);
+                map.setView([coords.latitude, coords.longitude], 15);
 
-                    if (marker) {
-                        marker.setMap(null);
-                    }
-
-                    const locationTitle = `${primaryLocation.city}, ${primaryLocation.country}`;
-                    marker = new google.maps.Marker({
-                        position: location,
-                        map: map,
-                        animation: google.maps.Animation.DROP,
-                    title: locationTitle
+                // Staggered card reveal
+                requestAnimationFrame(() => {
+                    document.querySelectorAll('.result-card').forEach((card, i) => {
+                        setTimeout(() => card.classList.add('visible'), i * 80);
+                    });
                 });
 
-                // Automatically enable 3D view for better visualization
-                setTimeout(() => {
-                    enable3DView();
-                }, 1000);
-                } else {
-                    console.warn('Google Maps not loaded - map features disabled');
-                }
             } else {
-                alert('No location could be determined from the image.');
+                showToast('No location could be determined');
                 uploadOverlay.classList.remove('hidden');
             }
         }
 
-        // Helper function to update map with location
-        function updateMapWithLocation(location, primaryLocation) {
-            if (map && typeof google !== 'undefined' && google.maps) {
-                map.setCenter(location);
-                map.setZoom(18);
+        function openInGoogleMaps(lat, lng) { window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank'); }
 
-                if (marker) {
-                    marker.setMap(null);
-                }
-
-                const locationTitle = `${primaryLocation.city}, ${primaryLocation.country}`;
-                marker = new google.maps.Marker({
-                    position: location,
-                    map: map,
-                    animation: google.maps.Animation.DROP,
-                    title: locationTitle
-                });
-
-                // Automatically enable 3D view for better visualization
-                setTimeout(() => {
-                    enable3DView();
-                }, 1000);
-            }
+        function openStreetView() {
+            if (currentLocationLat !== null && currentLocationLng !== null) {
+                window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currentLocationLat},${currentLocationLng}`, '_blank');
+            } else { showToast('Analyze an image first'); }
         }
 
-        // Show placeholder when Google Maps is not available
-        function showMapPlaceholder(location, primaryLocation) {
-            const mapContainer = document.getElementById('map');
-            mapContainer.innerHTML = `
-                <div class="flex items-center justify-center h-full bg-slate-800 text-center p-8">
-                    <div>
-                        <i class="fas fa-map-marked-alt text-6xl text-gray-600 mb-4"></i>
-                        <h3 class="text-xl font-semibold mb-2">Location Found</h3>
-                        <p class="text-gray-300 mb-4">${primaryLocation.city}, ${primaryLocation.country}</p>
-                        <p class="text-sm text-gray-400 mb-4">
-                            Coordinates: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}
-                        </p>
-                        <div class="space-y-2">
-                            <button onclick="openInGoogleMaps(${location.lat}, ${location.lng})" 
-                                    class="bg-primary hover:bg-cyan-600 text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas fa-external-link-alt mr-2"></i>Open in Google Maps
-                            </button>
-                            <p class="text-xs text-gray-500">
-                                Configure Google Maps API key in settings to see interactive map
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Open location in Google Maps
-        function openInGoogleMaps(lat, lng) {
-            const url = `https://www.google.com/maps?q=${lat},${lng}`;
-            window.open(url, '_blank');
-        }
-
-        // Check Street View availability
-        function checkStreetViewAvailability(lat, lng) {
-            if (typeof google === 'undefined' || !google.maps) {
-                return Promise.resolve({ available: false, error: 'Google Maps not loaded' });
-            }
-            
-            const streetViewService = new google.maps.StreetViewService();
-            const STREETVIEW_MAX_DISTANCE = 50; // meters
-
-            return new Promise((resolve, reject) => {
-                streetViewService.getPanorama(
-                    { location: { lat, lng }, radius: STREETVIEW_MAX_DISTANCE },
-                    (data, status) => {
-                        if (status === google.maps.StreetViewStatus.OK) {
-                            resolve({ available: true, data });
-                        } else {
-                            resolve({ available: false });
-                        }
-                    }
-                );
-            });
-        }
-
-        // Export complete report
         function exportReport() {
-            if (!currentAnalysisResult) {
-                alert('No analysis results to export');
-                return;
-            }
-
+            if (!currentAnalysisResult) { showToast('No results to export'); return; }
             const locations = currentAnalysisResult.locations || [];
-            const interpretation = currentAnalysisResult.interpretation || 'No interpretation available';
+            const interpretation = currentAnalysisResult.interpretation || '';
+            if (!locations.length) { showToast('No location data'); return; }
+            const loc = locations[0];
+            const coords = loc.coordinates || { latitude: 0, longitude: 0 };
 
-            if (locations.length === 0) {
-                alert('No location data to export');
-                return;
-            }
+            const report = `GeoIntel Location Analysis Report\n${'='.repeat(36)}\nGenerated: ${new Date().toLocaleString()}\n\nAI ANALYSIS\n${'-'.repeat(11)}\n${interpretation}\n\nLOCATION DETAILS\n${'-'.repeat(16)}\nLatitude: ${coords.latitude.toFixed(6)}\nLongitude: ${coords.longitude.toFixed(6)}\nCity: ${loc.city || 'Unknown'}\nCountry: ${loc.country || 'Unknown'}\nConfidence: ${loc.confidence || 'Medium'}\n\nCOORDINATES\n${'-'.repeat(11)}\nDecimal: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}\nGoogle Maps: https://www.google.com/maps?q=${coords.latitude},${coords.longitude}\n\nMETADATA\n${'-'.repeat(8)}\nDate: ${new Date().toISOString()}\nSource: GeoIntel AI Location Intelligence`;
 
-            const primaryLocation = locations[0];
-            const coordinates = primaryLocation.coordinates || { latitude: 0, longitude: 0 };
-
-            // Create report content
-            const reportContent = `
-GeoIntel Location Analysis Report
-================================
-Generated: ${new Date().toLocaleString()}
-
-AI ANALYSIS
------------
-${interpretation}
-
-LOCATION DETAILS
-----------------
-Latitude: ${coordinates.latitude.toFixed(6)}
-Longitude: ${coordinates.longitude.toFixed(6)}
-City: ${primaryLocation.city || 'Unknown'}
-Country: ${primaryLocation.country || 'Unknown'}
-
-COORDINATES
------------
-Decimal Degrees: ${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}
-Google Maps: https://www.google.com/maps?q=${coordinates.latitude},${coordinates.longitude}
-
-METADATA
---------
-Analysis Date: ${new Date().toISOString()}
-Source: GeoIntel AI Location Intelligence
-            `.trim();
-
-            // Create and download file
-            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const blob = new Blob([report], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `geointel_report_${Date.now()}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            a.href = url; a.download = `geointel_report_${Date.now()}.txt`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
-
-            alert('Report exported successfully!');
+            showToast('Report exported');
         }
 
-        // 3D View Functions
-        function enable3DView() {
-            map.setTilt(45);
-            map.setZoom(18);
-            document.getElementById('view3DBtn').classList.add('bg-primary', 'text-white');
-            document.getElementById('view3DBtn').classList.remove('bg-dark-surface');
-            document.getElementById('mapViewBtn').classList.remove('bg-primary', 'text-white');
-            document.getElementById('mapViewBtn').classList.add('bg-dark-surface');
-            document.getElementById('rotationControls').classList.remove('hidden');
-        }
-
-        function disable3DView() {
-            map.setTilt(0);
-            map.setHeading(0);
-            document.getElementById('rotationControls').classList.add('hidden');
-        }
-
-        // Theme Toggle
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-
-        themeToggle.addEventListener('click', () => {
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                themeToggle.innerHTML = '<i class="fas fa-sun text-yellow-400"></i>';
-            } else {
-                html.classList.add('dark');
-                themeToggle.innerHTML = '<i class="fas fa-moon text-gray-300"></i>';
-            }
-        });
-
-        // Map View Toggle
+        // ── Map Controls ──
         const mapViewBtn = document.getElementById('mapViewBtn');
-        const view3DBtn = document.getElementById('view3DBtn');
         const streetViewBtn = document.getElementById('streetViewBtn');
 
         mapViewBtn.addEventListener('click', () => {
-            map.getStreetView().setVisible(false);
-            disable3DView();
-            map.setZoom(15);
-
-            mapViewBtn.classList.add('bg-primary', 'text-white');
-            mapViewBtn.classList.remove('bg-dark-surface');
-            view3DBtn.classList.remove('bg-primary', 'text-white');
-            view3DBtn.classList.add('bg-dark-surface');
-            streetViewBtn.classList.remove('bg-primary', 'text-white');
-            streetViewBtn.classList.add('bg-dark-surface');
+            if (currentLocationLat !== null) map.setView([currentLocationLat, currentLocationLng], 15);
+            mapViewBtn.classList.add('active'); streetViewBtn.classList.remove('active');
         });
+        streetViewBtn.addEventListener('click', openStreetView);
 
-        view3DBtn.addEventListener('click', () => {
-            map.getStreetView().setVisible(false);
-            enable3DView();
+        document.getElementById('mapTypeSelector').addEventListener('change', (e) => setTileLayer(e.target.value));
 
-            view3DBtn.classList.add('bg-primary', 'text-white');
-            view3DBtn.classList.remove('bg-dark-surface');
-            mapViewBtn.classList.remove('bg-primary', 'text-white');
-            mapViewBtn.classList.add('bg-dark-surface');
-            streetViewBtn.classList.remove('bg-primary', 'text-white');
-            streetViewBtn.classList.add('bg-dark-surface');
-        });
-
-        streetViewBtn.addEventListener('click', async () => {
-            // Get current location from marker or use default
-            let location = marker ? marker.getPosition() : { lat: () => 52.5163, lng: () => 13.4049 };
-            const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-            const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-
-            // Check if Street View is available
-            const availability = await checkStreetViewAvailability(lat, lng);
-
-            if (!availability.available) {
-                alert('Street View is not available for this location. Try a nearby location or a different area.');
-                return;
+        // ── Format Analysis Text ──
+        function formatAnalysis(text) {
+            if (!text) return '';
+            // Sanitize HTML entities to prevent XSS
+            const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            // Split on existing newlines or sentence boundaries for readability
+            const lines = safe.split(/\n+/).filter(l => l.trim());
+            if (lines.length > 1) {
+                return lines.map(l => `<p>${l.trim()}</p>`).join('');
             }
-
-            // Show Street View if available
-            const panorama = map.getStreetView();
-            panorama.setPosition({ lat, lng });
-            panorama.setVisible(true);
-            disable3DView();
-
-            streetViewBtn.classList.add('bg-primary', 'text-white');
-            streetViewBtn.classList.remove('bg-dark-surface');
-            mapViewBtn.classList.remove('bg-primary', 'text-white');
-            mapViewBtn.classList.add('bg-dark-surface');
-            view3DBtn.classList.remove('bg-primary', 'text-white');
-            view3DBtn.classList.add('bg-dark-surface');
-        });
-
-        // 3D Rotation Controls
-        const rotateLeft = document.getElementById('rotateLeft');
-        const rotateRight = document.getElementById('rotateRight');
-        const tiltUp = document.getElementById('tiltUp');
-        const tiltDown = document.getElementById('tiltDown');
-        const resetView = document.getElementById('resetView');
-
-        rotateLeft.addEventListener('click', () => {
-            const currentHeading = map.getHeading() || 0;
-            map.setHeading(currentHeading - 30);
-        });
-
-        rotateRight.addEventListener('click', () => {
-            const currentHeading = map.getHeading() || 0;
-            map.setHeading(currentHeading + 30);
-        });
-
-        tiltUp.addEventListener('click', () => {
-            const currentTilt = map.getTilt() || 0;
-            if (currentTilt < 45) {
-                map.setTilt(45);
+            // Single block — split into sentences, group into short paragraphs
+            const sentences = safe.match(/[^.!?]+[.!?]+/g) || [safe];
+            if (sentences.length <= 3) {
+                return `<p>${sentences.join(' ').trim()}</p>`;
             }
-        });
+            const mid = Math.ceil(sentences.length / 2);
+            return `<p>${sentences.slice(0, mid).join(' ').trim()}</p><p>${sentences.slice(mid).join(' ').trim()}</p>`;
+        }
 
-        tiltDown.addEventListener('click', () => {
-            const currentTilt = map.getTilt() || 0;
-            if (currentTilt > 0) {
-                map.setTilt(Math.max(0, currentTilt - 15));
-            }
-        });
-
-        resetView.addEventListener('click', () => {
-            map.setHeading(0);
-            map.setTilt(45);
-        });
-
-        // Map Type Selector
-        const mapTypeSelector = document.getElementById('mapTypeSelector');
-        mapTypeSelector.addEventListener('change', (e) => {
-            map.setMapTypeId(e.target.value);
-        });
-
-        // Utility Functions
+        // ── Utility ──
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
-            });
+            navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
         }
 
         function submitFeedback(type) {
-            alert(`Thank you for your ${type} feedback!`);
+            const msgs = { happy: 'Thanks! Glad it was accurate', neutral: 'Thanks for the feedback', sad: 'Sorry about that. We\'ll improve' };
+            showToast(msgs[type] || 'Thanks for feedback');
         }
 
-        // API Key Modal Event Listeners
-        const apiKeyBtn = document.getElementById('apiKeyBtn');
-        const closeApiModal = document.getElementById('closeApiModal');
-        const cancelApiModal = document.getElementById('cancelApiModal');
-        const saveApiKeyBtn = document.getElementById('saveApiKey');
+        // ── API Key Modal ──
+        document.getElementById('apiKeyBtn').addEventListener('click', showApiKeyModal);
+        document.getElementById('closeApiModal').addEventListener('click', hideApiKeyModal);
+        document.getElementById('cancelApiModal').addEventListener('click', hideApiKeyModal);
 
-        apiKeyBtn.addEventListener('click', showApiKeyModal);
-        closeApiModal.addEventListener('click', hideApiKeyModal);
-        cancelApiModal.addEventListener('click', hideApiKeyModal);
-
-        saveApiKeyBtn.addEventListener('click', () => {
-            const apiKeyInput = document.getElementById('apiKeyInput');
-            const apiKey = apiKeyInput.value.trim();
-
-            if (!apiKey) {
-                showApiKeyStatus('Please enter a valid API key', true);
-                return;
-            }
-
-            saveApiKey(apiKey);
-            showApiKeyStatus('API key saved successfully!', false);
-
-            setTimeout(() => {
-                hideApiKeyModal();
-            }, 1500);
+        document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key) { showApiKeyStatus('Please enter a valid API key', true); return; }
+            storeApiKey(key);
+            showApiKeyStatus('Saved successfully!', false);
+            setTimeout(hideApiKeyModal, 1200);
         });
 
-        // Maps API Key Modal Management
-        function showMapsApiKeyModal() {
-            document.getElementById('mapsApiKeyModal').classList.remove('hidden');
-            const savedKey = localStorage.getItem(STORAGE_KEYS.MAPS_API_KEY);
-            if (savedKey) {
-                document.getElementById('mapsApiKeyInput').value = savedKey;
-            }
-        }
+        // ── Export & Search Listeners ──
+        document.getElementById('exportReportBtn').addEventListener('click', exportReport);
+        document.getElementById('reverseSearchBtn').addEventListener('click', () => document.getElementById('reverseSearchInput').click());
+        document.getElementById('reverseSearchInput').addEventListener('change', (e) => { if (e.target.files[0]) openGoogleReverseSearch(); });
+        document.getElementById('openGoogleLens').addEventListener('click', openGoogleReverseSearch);
+        document.getElementById('performReverseSearch').addEventListener('click', openGoogleReverseSearch);
 
-        function hideMapsApiKeyModal() {
-            document.getElementById('mapsApiKeyModal').classList.add('hidden');
-        }
-
-        function showMapsApiKeyStatus(message, isError = false) {
-            const statusDiv = document.getElementById('mapsApiKeyStatus');
-            statusDiv.textContent = message;
-            statusDiv.className = `mt-2 text-sm ${isError ? 'text-red-400' : 'text-green-400'}`;
-            statusDiv.classList.remove('hidden');
-        }
-
-        // Maps API Key Modal Event Listeners
-        const mapsApiKeyBtn = document.getElementById('mapsApiKeyBtn');
-        const closeMapsApiModal = document.getElementById('closeMapsApiModal');
-        const cancelMapsApiModal = document.getElementById('cancelMapsApiModal');
-        const saveMapsApiKeyBtn = document.getElementById('saveMapsApiKey');
-
-        mapsApiKeyBtn.addEventListener('click', showMapsApiKeyModal);
-        closeMapsApiModal.addEventListener('click', hideMapsApiKeyModal);
-        cancelMapsApiModal.addEventListener('click', hideMapsApiKeyModal);
-
-        saveMapsApiKeyBtn.addEventListener('click', () => {
-            const mapsApiKeyInput = document.getElementById('mapsApiKeyInput');
-            const mapsApiKey = mapsApiKeyInput.value.trim();
-
-            if (!mapsApiKey) {
-                showMapsApiKeyStatus('Please enter a valid API key', true);
-                return;
-            }
-
-            localStorage.setItem(STORAGE_KEYS.MAPS_API_KEY, mapsApiKey);
-            showMapsApiKeyStatus('API key saved successfully! Please reload the page.', false);
-
-            setTimeout(() => {
-                hideMapsApiKeyModal();
-                // Reload page to load Maps API with new key
-                location.reload();
-            }, 2000);
-        });
-
-        // Export Report Event Listener
-        const exportReportBtn = document.getElementById('exportReportBtn');
-        exportReportBtn.addEventListener('click', exportReport);
-
-        // Reverse Image Search Event Listeners
-        const reverseSearchBtn = document.getElementById('reverseSearchBtn');
-        const reverseSearchInput = document.getElementById('reverseSearchInput');
-        const openGoogleLensBtn = document.getElementById('openGoogleLens');
-        const performReverseSearchBtn = document.getElementById('performReverseSearch');
-
-        reverseSearchBtn.addEventListener('click', () => {
-            reverseSearchInput.click();
-        });
-
-        reverseSearchInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                openGoogleReverseSearch(file);
-            }
-        });
-
-        openGoogleLensBtn.addEventListener('click', () => {
-            openGoogleReverseSearch(currentImageFile);
-        });
-
-        performReverseSearchBtn.addEventListener('click', () => {
-            openGoogleReverseSearch(currentImageFile);
-        });
-
-        // Check if API keys are configured on load
+        // ── Init ──
         window.addEventListener('load', () => {
-            const apiKey = getStoredApiKey();
-            const mapsApiKey = localStorage.getItem(STORAGE_KEYS.MAPS_API_KEY);
-
-            // Load Google Maps API if key is configured
-            if (mapsApiKey) {
-                loadGoogleMapsAPI();
-            } else {
-                // Show Maps API key modal
-                setTimeout(() => {
-                    const shouldConfigure = confirm('Welcome to GeoIntel! Would you like to configure your Google Maps API key first?');
-                    if (shouldConfigure) {
-                        showMapsApiKeyModal();
-                    }
-                }, 500);
-            }
-
-            // Check Gemini API key
-            if (!apiKey) {
-                setTimeout(() => {
-                    const shouldConfigure = confirm('Would you also like to configure your Gemini API key for location analysis?');
-                    if (shouldConfigure) {
-                        showApiKeyModal();
-                    }
-                }, 2000);
-            }
+            updateApiKeyIndicator();
+            if (!getStoredApiKey()) setTimeout(showApiKeyModal, 600);
         });
 
-        // Try to load Google Maps on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Attempt to load Google Maps if API key is configured
-            const mapsApiKey = localStorage.getItem(STORAGE_KEYS.MAPS_API_KEY);
-            if (mapsApiKey) {
-                loadGoogleMapsAPI();
-            } else {
-                console.warn('Google Maps API key not configured. Map features will be disabled.');
-            }
-        });
-
+        document.addEventListener('DOMContentLoaded', initMap);
     </script>
 </body>
 </html>

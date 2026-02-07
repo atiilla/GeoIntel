@@ -1,10 +1,10 @@
-// GeoSense Configuration File
+// GeoIntel Configuration File
 // Customize your application settings here
 
 const GEOSENSE_CONFIG = {
     // Application Settings
     app: {
-        name: 'GeoSense',
+        name: 'GeoIntel',
         tagline: 'AI Location Intelligence',
         defaultTheme: 'dark', // 'dark' or 'light'
     },
@@ -21,8 +21,7 @@ const GEOSENSE_CONFIG = {
 
     // Map Settings
     map: {
-        provider: 'google', // Currently only 'google' supported
-        apiKey: 'YOUR_API_KEY', // Replace with your Google Maps API key
+        provider: 'leaflet', // Uses Leaflet + OpenStreetMap (no API key needed)
         initialView: {
             lat: 20,
             lng: 0,
@@ -30,7 +29,8 @@ const GEOSENSE_CONFIG = {
         },
         resultView: {
             zoom: 15 // Zoom level when showing results
-        }
+        },
+        defaultTileLayer: 'dark' // 'dark', 'street', 'satellite', 'terrain'
     },
 
     // Demo/Sample Data (for testing without backend)
@@ -55,7 +55,7 @@ const GEOSENSE_CONFIG = {
             export: '/api/export',
             feedback: '/api/feedback'
         },
-        baseURL: 'https://your-api-domain.com'
+        baseURL: '#'
     },
 
     // Feature Flags

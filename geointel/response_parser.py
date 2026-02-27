@@ -55,14 +55,33 @@ def parse_geolocation_response(api_response: Dict[str, Any]) -> Dict[str, Any]:
     if "city" in parsed_result and "locations" not in parsed_result:
         return {
             "interpretation": parsed_result.get("interpretation", ""),
-            "locations": [{
-                "country": parsed_result.get("country", ""),
-                "state": parsed_result.get("state", ""),
-                "city": parsed_result.get("city", ""),
-                "confidence": parsed_result.get("confidence", "Medium"),
-                "coordinates": parsed_result.get("coordinates", {"latitude": 0, "longitude": 0}),
-                "explanation": parsed_result.get("explanation", "")
-            }]
+            "locations": [_normalize_location(parsed_result)]
         }
     
+    # Validate top-level structure
+    if not isinstance(parsed_result.get("locations"), list):
+        raise ValueError("Parsed response missing 'locations' list")
+    
+    parsed_result.setdefault("interpretation", "")
+    parsed_result["locations"] = [_normalize_location(loc) for loc in parsed_result["locations"]]
+    
     return parsed_result
+
+
+def _normalize_location(location: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure a location dict has all required fields with safe defaults."""
+    coords = location.get("coordinates")
+    if not isinstance(coords, dict):
+        coords = {"latitude": 0, "longitude": 0}
+    else:
+        coords.setdefault("latitude", 0)
+        coords.setdefault("longitude", 0)
+    
+    return {
+        "country": location.get("country", ""),
+        "state": location.get("state", ""),
+        "city": location.get("city", ""),
+        "confidence": location.get("confidence", "Medium"),
+        "coordinates": coords,
+        "explanation": location.get("explanation", ""),
+    }

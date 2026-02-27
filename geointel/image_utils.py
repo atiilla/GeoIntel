@@ -4,6 +4,7 @@ import os
 import mimetypes
 from urllib.parse import urlparse
 from typing import Optional, Tuple
+from . import config
 
 
 def encode_image_to_base64(image_path: str) -> Tuple[str, str]:
@@ -38,11 +39,17 @@ def encode_image_to_base64(image_path: str) -> Tuple[str, str]:
             if not mime_type or not mime_type.startswith('image/'):
                 raise ValueError(f"URL does not return an image content-type: {mime_type or 'unknown'}")
             
+            if len(response.content) > config.MAX_IMAGE_SIZE_BYTES:
+                raise ValueError(
+                    f"Downloaded image is too large ({len(response.content) / (1024 * 1024):.1f} MB). "
+                    f"Maximum allowed size is {config.MAX_IMAGE_SIZE_BYTES / (1024 * 1024):.0f} MB."
+                )
+            
             return base64.b64encode(response.content).decode('utf-8'), mime_type
         except requests.exceptions.ConnectionError as e:
             raise ValueError(f"Failed to connect to URL: {image_path}. Please check your internet connection.") from e
         except requests.exceptions.HTTPError as e:
-            raise ValueError("HTTP error when downloading image.") from e
+            raise ValueError(f"HTTP error {e.response.status_code} when downloading image from {image_path}") from e
         except requests.exceptions.Timeout as e:
             raise ValueError(f"Request timed out when downloading image from URL: {image_path}") from e
         except requests.exceptions.RequestException as e:
@@ -57,6 +64,13 @@ def encode_image_to_base64(image_path: str) -> Tuple[str, str]:
             mime_type, _ = mimetypes.guess_type(image_path)
             if mime_type is None or not mime_type.startswith('image/'):
                 mime_type = 'image/jpeg'  # Safe fallback
+            
+            file_size = os.path.getsize(image_path)
+            if file_size > config.MAX_IMAGE_SIZE_BYTES:
+                raise ValueError(
+                    f"Image file is too large ({file_size / (1024 * 1024):.1f} MB). "
+                    f"Maximum allowed size is {config.MAX_IMAGE_SIZE_BYTES / (1024 * 1024):.0f} MB."
+                )
             
             with open(image_path, "rb") as image_file:
                 return base64.b64encode(image_file.read()).decode('utf-8'), mime_type

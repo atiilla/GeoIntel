@@ -5,13 +5,13 @@ setup(
     version='0.1.10',
     packages=find_packages(),
     install_requires=[
-        'requests',
+        'requests>=2.31.0',
     ],
     entry_points={
-    'console_scripts': [
-        'geointel=geointel.cli:main',
-    ],
-},
+        'console_scripts': [
+            'geointel=geointel.cli:main',
+        ],
+    },
     author='Atiilla',
     description='AI powered geo-location to uncover the location of photos.',
     url='https://github.com/atiilla/geointel',

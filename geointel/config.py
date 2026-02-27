@@ -5,6 +5,7 @@ from typing import Optional
 DEFAULT_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent"
 DEFAULT_API_KEY_ENV_VAR = "GEMINI_API_KEY"
 DEFAULT_MIME_TYPE = "image/jpeg"
+MAX_IMAGE_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB
 
 # Default generation configuration for Gemini API
 DEFAULT_GENERATION_CONFIG = {
@@ -15,7 +16,7 @@ DEFAULT_GENERATION_CONFIG = {
 }
 
 
-def get_api_key(api_key: str | None = None) -> str:
+def get_api_key(api_key: Optional[str] = None) -> str:
     """
     Get the API key from the provided parameter or environment variable.
     

@@ -35,7 +35,7 @@ def main():
             
             # Save to file if requested
             if args.output:
-                with open(args.output, 'w') as f:
+                with open(args.output, 'w', encoding='utf-8') as f:
                     json.dump(results, f, indent=2)
                 print(f"\nResults saved to {args.output}")
         except Exception as e:

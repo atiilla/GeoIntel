@@ -26,7 +26,7 @@ class GeoIntel:
             logger.info(f"Starting location analysis for: {image_path}")
 
             # Process image
-            image_base64 = self.image_processor.process_image(image_path)
+            image_base64, mime_type = self.image_processor.process_image(image_path)
 
             # Generate prompt
             prompt = get_geolocation_prompt(context_info, location_guess)
@@ -34,7 +34,8 @@ class GeoIntel:
             # Call API
             raw_response = self.api_client.generate_content(
                 prompt=prompt,
-                image_base64=image_base64
+                image_base64=image_base64,
+                mime_type=mime_type
             )
 
             # Parse response

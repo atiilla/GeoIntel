@@ -35,7 +35,7 @@ setup(
     },
     author="Atilla",
     author_email="atilla@tuta.io",
-    description="AI-powered geolocation analysis using Google Gemini 3 Flash",
+    description="AI-powered geolocation analysis using Google Gemini 3 Flash Preview",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/atiilla/geointel",

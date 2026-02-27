@@ -1,8 +1,8 @@
 from typing import Final
 
 # API Configuration
-GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1/models"
-GEMINI_MODEL: Final[str] = "gemini-2.5-flash"  # Gemini 2.5 Flash
+GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_MODEL: Final[str] = "gemini-3-flash"
 API_TIMEOUT: Final[int] = 30
 
 # Generation Configuration

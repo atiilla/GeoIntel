@@ -60,10 +60,3 @@ class GeoIntel:
                 "details": str(e)
             }
 
-    def locate_with_gemini(
-        self,
-        image_path: str,
-        context_info: Optional[str] = None,
-        location_guess: Optional[str] = None
-    ) -> Dict[str, Any]:
-        return self.locate(image_path, context_info, location_guess)

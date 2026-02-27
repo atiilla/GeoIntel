@@ -30,42 +30,6 @@ class GeminiClient:
         self.model = GEMINI_MODEL
         logger.info(f"Initialized Gemini client with model: {self.model}")
 
-    def _build_endpoint_url(self) -> str:
-        return f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
-
-    def _build_request_payload(
-        self,
-        prompt: str,
-        image_base64: str,
-        mime_type: str = "image/jpeg"
-    ) -> Dict[str, Any]:
-        return {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": image_base64
-                            }
-                        }
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": DEFAULT_TEMPERATURE,
-                "topK": DEFAULT_TOP_K,
-                "topP": DEFAULT_TOP_P,
-                "maxOutputTokens": MAX_OUTPUT_TOKENS
-            }
-        }
-
-    def _get_request_headers(self) -> Dict[str, str]:
-        return {
-            "Content-Type": "application/json"
-        }
-
     def _extract_response_text(self, response_data: Dict[str, Any]) -> str:
         try:
             # Log the full response structure for debugging
@@ -156,9 +120,29 @@ class GeminiClient:
         image_base64: str,
         mime_type: str = "image/jpeg"
     ) -> str:
-        endpoint_url = self._build_endpoint_url()
-        headers = self._get_request_headers()
-        payload = self._build_request_payload(prompt, image_base64, mime_type)
+        endpoint_url = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inline_data": {
+                                "mime_type": mime_type,
+                                "data": image_base64
+                            }
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": DEFAULT_TEMPERATURE,
+                "topK": DEFAULT_TOP_K,
+                "topP": DEFAULT_TOP_P,
+                "maxOutputTokens": MAX_OUTPUT_TOKENS
+            }
+        }
 
         try:
             logger.info("Sending request to Gemini API")

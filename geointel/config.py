@@ -17,7 +17,6 @@ DEFAULT_MIME_TYPE: Final[str] = "image/jpeg"
 IMAGE_DOWNLOAD_TIMEOUT: Final[int] = 10
 
 # Response Configuration
-MAX_LOCATIONS: Final[int] = 3
 CONFIDENCE_LEVELS: Final[tuple] = ("High", "Medium", "Low")
 
 # Environment Variables

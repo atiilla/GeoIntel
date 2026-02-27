@@ -10,8 +10,6 @@ from .config import DEFAULT_MIME_TYPE, IMAGE_DOWNLOAD_TIMEOUT, SUPPORTED_IMAGE_F
 from .exceptions import InvalidImageError, NetworkError
 from .logger import logger
 
-_VALID_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-
 
 class ImageProcessor:
     @staticmethod
@@ -80,7 +78,8 @@ class ImageProcessor:
         parsed = urlparse(image_path)
         path = parsed.path if parsed.scheme in ("http", "https") else image_path
         mime_type, _ = mimetypes.guess_type(path)
-        if mime_type not in _VALID_MIME_TYPES:
+        valid_mime_types = {f"image/{ext.replace('jpg', 'jpeg')}" for ext in SUPPORTED_IMAGE_FORMATS}
+        if mime_type not in valid_mime_types:
             mime_type = DEFAULT_MIME_TYPE
         return mime_type
 

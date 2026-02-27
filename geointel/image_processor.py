@@ -1,13 +1,16 @@
 import base64
+import mimetypes
 from pathlib import Path
 from typing import Union
 from urllib.parse import urlparse
 
 import requests
 
-from .config import IMAGE_DOWNLOAD_TIMEOUT, SUPPORTED_IMAGE_FORMATS
+from .config import DEFAULT_MIME_TYPE, IMAGE_DOWNLOAD_TIMEOUT, SUPPORTED_IMAGE_FORMATS
 from .exceptions import InvalidImageError, NetworkError
 from .logger import logger
+
+_VALID_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
 class ImageProcessor:
@@ -71,6 +74,15 @@ class ImageProcessor:
     def encode_to_base64(image_data: bytes) -> str:
      
         return base64.b64encode(image_data).decode("utf-8")
+
+    @staticmethod
+    def get_mime_type(image_path: str) -> str:
+        parsed = urlparse(image_path)
+        path = parsed.path if parsed.scheme in ("http", "https") else image_path
+        mime_type, _ = mimetypes.guess_type(path)
+        if mime_type not in _VALID_MIME_TYPES:
+            mime_type = DEFAULT_MIME_TYPE
+        return mime_type
 
     @classmethod
     def process_image(cls, image_path: str) -> str:

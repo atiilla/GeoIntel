@@ -1,8 +1,8 @@
 from typing import Final
 
 # API Configuration
-GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1/models"
-GEMINI_MODEL: Final[str] = "gemini-2.5-flash"  # Gemini 2.5 Flash
+GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_MODEL: Final[str] = "gemini-3-flash-preview"
 API_TIMEOUT: Final[int] = 30
 
 # Generation Configuration
@@ -17,7 +17,6 @@ DEFAULT_MIME_TYPE: Final[str] = "image/jpeg"
 IMAGE_DOWNLOAD_TIMEOUT: Final[int] = 10
 
 # Response Configuration
-MAX_LOCATIONS: Final[int] = 3
 CONFIDENCE_LEVELS: Final[tuple] = ("High", "Medium", "Low")
 
 # Environment Variables

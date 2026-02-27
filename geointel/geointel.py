@@ -27,6 +27,7 @@ class GeoIntel:
 
             # Process image
             image_base64 = self.image_processor.process_image(image_path)
+            mime_type = self.image_processor.get_mime_type(image_path)
 
             # Generate prompt
             prompt = get_geolocation_prompt(context_info, location_guess)
@@ -34,7 +35,8 @@ class GeoIntel:
             # Call API
             raw_response = self.api_client.generate_content(
                 prompt=prompt,
-                image_base64=image_base64
+                image_base64=image_base64,
+                mime_type=mime_type
             )
 
             # Parse response
@@ -58,10 +60,3 @@ class GeoIntel:
                 "details": str(e)
             }
 
-    def locate_with_gemini(
-        self,
-        image_path: str,
-        context_info: Optional[str] = None,
-        location_guess: Optional[str] = None
-    ) -> Dict[str, Any]:
-        return self.locate(image_path, context_info, location_guess)

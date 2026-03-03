@@ -10,7 +10,6 @@ from .response_parser import ResponseParser
 
 class GeoIntel:
     def __init__(self, api_key: Optional[str] = None):
-       
         self.api_client = GeminiClient(api_key)
         self.image_processor = ImageProcessor()
         self.response_parser = ResponseParser()
@@ -25,16 +24,17 @@ class GeoIntel:
         try:
             logger.info(f"Starting location analysis for: {image_path}")
 
-            # Process image
-            image_base64 = self.image_processor.process_image(image_path)
+            # Process image — returns (base64_data, mime_type)
+            image_base64, mime_type = self.image_processor.process_image(image_path)
 
             # Generate prompt
             prompt = get_geolocation_prompt(context_info, location_guess)
 
-            # Call API
+            # Call API with detected MIME type
             raw_response = self.api_client.generate_content(
                 prompt=prompt,
-                image_base64=image_base64
+                image_base64=image_base64,
+                mime_type=mime_type
             )
 
             # Parse response
@@ -57,11 +57,3 @@ class GeoIntel:
                 "error": "An unexpected error occurred",
                 "details": str(e)
             }
-
-    def locate_with_gemini(
-        self,
-        image_path: str,
-        context_info: Optional[str] = None,
-        location_guess: Optional[str] = None
-    ) -> Dict[str, Any]:
-        return self.locate(image_path, context_info, location_guess)

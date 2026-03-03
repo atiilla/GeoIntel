@@ -172,8 +172,14 @@ class GeminiClient:
             # Check for HTTP errors
             if response.status_code != 200:
                 error_msg = f"API request failed with status {response.status_code}"
-                logger.error(f"{error_msg}: {response.text}")
-                raise APIError(f"{error_msg}: {response.text}")
+                # Extract structured error message without exposing raw response
+                try:
+                    err_data = response.json()
+                    detail = err_data.get("error", {}).get("message", "Unknown error")
+                except Exception:
+                    detail = "Could not parse error response"
+                logger.error(f"{error_msg}: {detail}")
+                raise APIError(f"{error_msg}: {detail}")
 
             # Parse and extract response
             response_data = response.json()

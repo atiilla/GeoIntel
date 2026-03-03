@@ -3,7 +3,7 @@ from typing import Final
 # API Configuration
 GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1/models"
 GEMINI_MODEL: Final[str] = "gemini-2.5-flash"  # Gemini 2.5 Flash
-API_TIMEOUT: Final[int] = 30
+API_TIMEOUT: Final[int] = 60  # Vision model requests need more time
 
 # Generation Configuration
 DEFAULT_TEMPERATURE: Final[float] = 0.3  # Lower for more consistent/accurate location predictions
@@ -19,6 +19,9 @@ IMAGE_DOWNLOAD_TIMEOUT: Final[int] = 10
 # Response Configuration
 MAX_LOCATIONS: Final[int] = 3
 CONFIDENCE_LEVELS: Final[tuple] = ("High", "Medium", "Low")
+
+# Image Size Limits
+MAX_IMAGE_SIZE_BYTES: Final[int] = 20 * 1024 * 1024  # 20 MB
 
 # Environment Variables
 ENV_API_KEY: Final[str] = "GEMINI_API_KEY"

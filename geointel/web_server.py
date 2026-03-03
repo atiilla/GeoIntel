@@ -84,16 +84,24 @@ def analyze_image():
         else:
             # Save base64 image to temporary file
             try:
-                # Remove data URI prefix if present
+                # Remove data URI prefix if present and detect format
+                suffix = '.jpg'
                 if ',' in image_data:
-                    image_data = image_data.split(',', 1)[1]
+                    header, image_data = image_data.split(',', 1)
+                    # Extract MIME type from data URI (e.g. data:image/png;base64)
+                    if 'image/png' in header:
+                        suffix = '.png'
+                    elif 'image/webp' in header:
+                        suffix = '.webp'
+                    elif 'image/gif' in header:
+                        suffix = '.gif'
 
                 image_bytes = base64.b64decode(image_data)
 
-                # Create temporary file
+                # Create temporary file with correct extension
                 temp_file = tempfile.NamedTemporaryFile(
                     delete=False,
-                    suffix='.jpg',
+                    suffix=suffix,
                     dir=app.config['UPLOAD_FOLDER']
                 )
                 temp_file.write(image_bytes)

@@ -10,7 +10,7 @@ if readme_path.exists():
 
 setup(
     name="geointel",
-    version="0.1.12",
+    version="0.2.0",
     packages=find_packages(exclude=["tests", "examples"]),
     include_package_data=True,
     package_data={
@@ -35,7 +35,7 @@ setup(
     },
     author="Atilla",
     author_email="atilla@tuta.io",
-    description="AI-powered geolocation analysis using Google Gemini 2.5 Flash",
+    description="AI-powered geolocation analysis using Google Gemini 3 with multi-model support",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/atiilla/geointel",
@@ -55,6 +55,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Image Recognition",
     ],

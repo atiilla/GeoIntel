@@ -6,6 +6,7 @@ from typing import Optional
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+from .config import AVAILABLE_MODELS
 from .geointel import GeoIntel
 from .exceptions import GeoIntelError
 from .logger import logger
@@ -45,6 +46,11 @@ def health_check():
     return jsonify({'status': 'ok', 'message': 'GeoIntel Web API is running'})
 
 
+@app.route('/api/models', methods=['GET'])
+def list_models():
+    return jsonify({'models': AVAILABLE_MODELS})
+
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze_image():
     try:
@@ -60,6 +66,7 @@ def analyze_image():
         # Extract parameters
         image_data = data.get('image')
         api_key = data.get('api_key')
+        model = data.get('model')
         context_info = data.get('context')
         location_guess = data.get('guess')
 
@@ -117,8 +124,8 @@ def analyze_image():
                     'details': str(e)
                 }), 400
 
-        # Initialize GeoIntel with provided API key
-        geointel = GeoIntel(api_key=api_key)
+        # Initialize GeoIntel with provided API key and model
+        geointel = GeoIntel(api_key=api_key, model=model)
 
         # Perform analysis
         result = geointel.locate(

@@ -435,7 +435,8 @@
                 </nav>
             </div>
             <div class="flex items-center space-x-2">
-                <button id="apiKeyBtn" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-dark-hover transition" title="Gemini API Key">
+                <span id="modelBadge" class="text-[10px] font-mono text-gray-600 bg-dark-card px-2 py-1 rounded-md border border-dark-border hidden"></span>
+                <button id="apiKeyBtn" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-dark-hover transition" title="API & Model Settings">
                     <i class="fas fa-key text-[12px] text-gray-500"></i>
                 </button>
             </div>
@@ -477,6 +478,17 @@
                 <label for="apiKeyInput" class="block text-xs font-medium text-gray-400 mb-2 tracking-wide uppercase">API Key</label>
                 <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key..." class="input-field">
                 <div id="apiKeyStatus" class="mt-2 text-xs hidden"></div>
+            </div>
+
+            <div class="mb-5">
+                <label for="modelSelect" class="block text-xs font-medium text-gray-400 mb-2 tracking-wide uppercase">AI Model</label>
+                <select id="modelSelect" class="input-field w-full cursor-pointer">
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash — Agentic Vision</option>
+                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — Most Accurate</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro — Stable</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash — Fast</option>
+                </select>
+                <p class="mt-1.5 text-[11px] text-gray-600">Gemini 3 Flash has Agentic Vision for iterative image analysis</p>
             </div>
 
             <div class="flex gap-3">
@@ -735,7 +747,7 @@
         let currentLocationLng = null;
 
         const API_BASE_URL = window.location.origin;
-        const STORAGE_KEYS = { API_KEY: 'geointel_gemini_api_key' };
+        const STORAGE_KEYS = { API_KEY: 'geointel_gemini_api_key', MODEL: 'geointel_model' };
 
         const TILE_LAYERS = {
             dark: {
@@ -831,20 +843,32 @@
             if (file) { currentImageFile = file; processImage(file); }
         }
 
-        // ── API Key ──
+        // ── API Key & Model ──
         function getStoredApiKey() { return localStorage.getItem(STORAGE_KEYS.API_KEY); }
         function storeApiKey(key) { localStorage.setItem(STORAGE_KEYS.API_KEY, key); updateApiKeyIndicator(); }
+        function getSelectedModel() { return localStorage.getItem(STORAGE_KEYS.MODEL) || 'gemini-3-flash-preview'; }
+        function storeModel(model) { localStorage.setItem(STORAGE_KEYS.MODEL, model); }
 
         function updateApiKeyIndicator() {
             const icon = document.getElementById('apiKeyBtn').querySelector('i');
-            if (getStoredApiKey()) { icon.classList.remove('text-gray-500'); icon.classList.add('text-emerald-400'); }
-            else { icon.classList.remove('text-emerald-400'); icon.classList.add('text-gray-500'); }
+            const badge = document.getElementById('modelBadge');
+            if (getStoredApiKey()) {
+                icon.classList.remove('text-gray-500'); icon.classList.add('text-emerald-400');
+                const modelId = getSelectedModel();
+                const short = modelId.replace('gemini-', '').replace('-preview', '');
+                badge.textContent = short;
+                badge.classList.remove('hidden');
+            } else {
+                icon.classList.remove('text-emerald-400'); icon.classList.add('text-gray-500');
+                badge.classList.add('hidden');
+            }
         }
 
         function showApiKeyModal() {
             document.getElementById('apiKeyModal').classList.remove('hidden');
             const saved = getStoredApiKey();
             if (saved) document.getElementById('apiKeyInput').value = saved;
+            document.getElementById('modelSelect').value = getSelectedModel();
         }
         function hideApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
 
@@ -912,6 +936,7 @@
                         body: JSON.stringify({
                             image: e.target.result,
                             api_key: apiKey,
+                            model: getSelectedModel(),
                             context: contextValue || null,
                             guess: guessValue || null
                         })
@@ -1090,6 +1115,7 @@
             const key = document.getElementById('apiKeyInput').value.trim();
             if (!key) { showApiKeyStatus('Please enter a valid API key', true); return; }
             storeApiKey(key);
+            storeModel(document.getElementById('modelSelect').value);
             showApiKeyStatus('Saved successfully!', false);
             setTimeout(hideApiKeyModal, 1200);
         });

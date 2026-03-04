@@ -9,8 +9,8 @@ from .response_parser import ResponseParser
 
 
 class GeoIntel:
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_client = GeminiClient(api_key)
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        self.api_client = GeminiClient(api_key, model=model)
         self.image_processor = ImageProcessor()
         self.response_parser = ResponseParser()
         logger.info("GeoIntel initialized successfully")

@@ -5,6 +5,7 @@ import requests
 
 from .config import (
     API_TIMEOUT,
+    AVAILABLE_MODELS,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_K,
     DEFAULT_TOP_P,
@@ -18,7 +19,7 @@ from .logger import logger
 
 
 class GeminiClient:
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get(ENV_API_KEY)
         if not self.api_key or self.api_key == "your_api_key_here":
             raise APIKeyError(
@@ -27,7 +28,11 @@ class GeminiClient:
             )
 
         self.base_url = GEMINI_API_BASE_URL
-        self.model = GEMINI_MODEL
+        # Validate model against allowlist
+        if model and model in AVAILABLE_MODELS:
+            self.model = model
+        else:
+            self.model = GEMINI_MODEL
         logger.info(f"Initialized Gemini client with model: {self.model}")
 
     def _build_endpoint_url(self) -> str:

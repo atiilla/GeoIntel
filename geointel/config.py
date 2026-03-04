@@ -2,8 +2,16 @@ from typing import Final
 
 # API Configuration
 GEMINI_API_BASE_URL: Final[str] = "https://generativelanguage.googleapis.com/v1/models"
-GEMINI_MODEL: Final[str] = "gemini-2.5-flash"  # Gemini 2.5 Flash
-API_TIMEOUT: Final[int] = 60  # Vision model requests need more time
+GEMINI_MODEL: Final[str] = "gemini-3-flash-preview"  # Default model
+API_TIMEOUT: Final[int] = 90  # Pro models need more time for deep reasoning
+
+# Available models (id -> display name)
+AVAILABLE_MODELS: Final[dict] = {
+    "gemini-3-flash-preview": "Gemini 3 Flash (Agentic Vision)",
+    "gemini-3.1-pro-preview": "Gemini 3.1 Pro (Most Accurate)",
+    "gemini-2.5-pro": "Gemini 2.5 Pro (Stable)",
+    "gemini-2.5-flash": "Gemini 2.5 Flash (Fast)",
+}
 
 # Generation Configuration
 DEFAULT_TEMPERATURE: Final[float] = 0.3  # Lower for more consistent/accurate location predictions

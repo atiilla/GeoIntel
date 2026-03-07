@@ -1,7 +1,7 @@
 import base64
 import mimetypes
 from pathlib import Path
-from typing import Union
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -12,6 +12,13 @@ from .logger import logger
 
 
 class ImageProcessor:
+    MIME_TYPE_SUFFIXES = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+    }
+
     @staticmethod
     def is_url(path: str) -> bool:
        
@@ -73,15 +80,57 @@ class ImageProcessor:
      
         return base64.b64encode(image_data).decode("utf-8")
 
-    @staticmethod
-    def get_mime_type(image_path: str) -> str:
+    @classmethod
+    def normalize_mime_type(cls, mime_type: Optional[str]) -> Optional[str]:
+        if not mime_type:
+            return None
+
+        normalized = mime_type.strip().lower()
+        if normalized == "image/jpg":
+            normalized = "image/jpeg"
+
+        if normalized in cls.MIME_TYPE_SUFFIXES:
+            return normalized
+
+        return None
+
+    @classmethod
+    def get_file_suffix(cls, mime_type: Optional[str]) -> str:
+        normalized_mime_type = cls.normalize_mime_type(mime_type)
+        return cls.MIME_TYPE_SUFFIXES.get(normalized_mime_type, ".jpg")
+
+    @classmethod
+    def parse_data_url(cls, image_data: str) -> Tuple[Optional[str], str]:
+        if not image_data.startswith("data:"):
+            return None, image_data
+
+        header, separator, encoded_data = image_data.partition(",")
+        if not separator or ";base64" not in header:
+            raise InvalidImageError("Image data URI must be base64 encoded")
+
+        mime_type = header[5:].split(";", 1)[0]
+        normalized_mime_type = cls.normalize_mime_type(mime_type)
+        if not normalized_mime_type:
+            raise InvalidImageError(
+                "Unsupported image MIME type. Supported formats: JPEG, PNG, WebP, GIF"
+            )
+
+        return normalized_mime_type, encoded_data
+
+    @classmethod
+    def get_mime_type(
+        cls,
+        image_path: str,
+        mime_type_override: Optional[str] = None
+    ) -> str:
+        override_mime_type = cls.normalize_mime_type(mime_type_override)
+        if override_mime_type:
+            return override_mime_type
+
         parsed = urlparse(image_path)
         path = parsed.path if parsed.scheme in ("http", "https") else image_path
         mime_type, _ = mimetypes.guess_type(path)
-        valid_mime_types = {f"image/{ext.replace('jpg', 'jpeg')}" for ext in SUPPORTED_IMAGE_FORMATS}
-        if mime_type not in valid_mime_types:
-            mime_type = DEFAULT_MIME_TYPE
-        return mime_type
+        return cls.normalize_mime_type(mime_type) or DEFAULT_MIME_TYPE
 
     @classmethod
     def process_image(cls, image_path: str) -> str:

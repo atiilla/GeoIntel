@@ -20,14 +20,18 @@ class GeoIntel:
         self,
         image_path: str,
         context_info: Optional[str] = None,
-        location_guess: Optional[str] = None
+        location_guess: Optional[str] = None,
+        mime_type_override: Optional[str] = None
     ) -> Dict[str, Any]:
         try:
             logger.info(f"Starting location analysis for: {image_path}")
 
             # Process image
             image_base64 = self.image_processor.process_image(image_path)
-            mime_type = self.image_processor.get_mime_type(image_path)
+            mime_type = self.image_processor.get_mime_type(
+                image_path,
+                mime_type_override=mime_type_override,
+            )
 
             # Generate prompt
             prompt = get_geolocation_prompt(context_info, location_guess)

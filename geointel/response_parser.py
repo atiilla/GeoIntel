@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .config import CONFIDENCE_LEVELS
 from .exceptions import ResponseParsingError
@@ -26,6 +26,24 @@ class ResponseParser:
         return confidence if confidence in CONFIDENCE_LEVELS else "Medium"
 
     @staticmethod
+    def normalize_coordinates(coordinates: Any) -> Dict[str, float]:
+        if not isinstance(coordinates, dict):
+            coordinates = {}
+
+        def coerce_coordinate(value: Any) -> float:
+            try:
+                if value is None:
+                    raise TypeError
+                return float(value)
+            except (TypeError, ValueError):
+                return 0.0
+
+        return {
+            "latitude": coerce_coordinate(coordinates.get("latitude")),
+            "longitude": coerce_coordinate(coordinates.get("longitude")),
+        }
+
+    @staticmethod
     def normalize_location(location: Dict[str, Any]) -> Dict[str, Any]:
        
         return {
@@ -35,15 +53,14 @@ class ResponseParser:
             "confidence": ResponseParser.normalize_confidence(
                 location.get("confidence", "Medium")
             ),
-            "coordinates": location.get("coordinates", {
-                "latitude": 0.0,
-                "longitude": 0.0
-            }),
+            "coordinates": ResponseParser.normalize_coordinates(
+                location.get("coordinates")
+            ),
             "explanation": location.get("explanation", "")
         }
 
     @staticmethod
-    def _attempt_json_repair(raw_response: str) -> Dict[str, Any]:
+    def _attempt_json_repair(raw_response: str) -> Optional[Dict[str, Any]]:
         """
         Attempt to repair truncated JSON by closing incomplete structures.
         """
@@ -104,6 +121,36 @@ class ResponseParser:
         return None
 
     @staticmethod
+    def _is_likely_truncated_json(
+        json_string: str,
+        error: json.JSONDecodeError
+    ) -> bool:
+        stripped = json_string.rstrip()
+        if not stripped:
+            return False
+
+        if "Unterminated string" in error.msg:
+            return True
+
+        # Only treat decode errors near the end of the payload as truncation.
+        if error.pos < max(len(stripped) - 2, 0):
+            return False
+
+        has_unbalanced_braces = stripped.count("{") > stripped.count("}")
+        has_unbalanced_brackets = stripped.count("[") > stripped.count("]")
+        likely_cutoff = stripped.endswith(("{", "[", ",", ":", '"'))
+
+        if has_unbalanced_braces or has_unbalanced_brackets or likely_cutoff:
+            return error.msg in {
+                "Expecting value",
+                "Expecting ',' delimiter",
+                "Expecting ':' delimiter",
+                "Expecting property name enclosed in double quotes",
+            }
+
+        return False
+
+    @staticmethod
     def parse_legacy_format(data: Dict[str, Any]) -> Dict[str, Any]:
       
         logger.debug("Parsing legacy format response")
@@ -148,7 +195,7 @@ class ResponseParser:
             logger.error(f"JSON parsing failed: {e}")
             
             # Check if this might be a truncated response
-            if "Unterminated string" in str(e) or "Expecting" in str(e):
+            if cls._is_likely_truncated_json(json_string, e):
                 logger.error("Response appears to be truncated. Attempting to repair JSON...")
                 
                 # Try to repair truncated JSON

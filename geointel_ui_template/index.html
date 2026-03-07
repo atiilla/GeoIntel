@@ -520,7 +520,7 @@
                                 <i class="fas fa-folder-open text-xs"></i><span>Browse Files</span>
                             </button>
                             <button id="reverseSearchBtn" class="btn-ghost w-full flex items-center justify-center gap-2 text-sm">
-                                <i class="fab fa-google text-xs"></i>Reverse Image Search
+                                <i class="fab fa-google text-xs"></i>Open Google Lens
                             </button>
                         </div>
 
@@ -594,7 +594,7 @@
             <!-- Tabs -->
             <div class="border-b border-dark-border flex px-5">
                 <button id="resultsTab" class="tab-btn active flex-1 py-3.5 text-[13px] font-medium transition">Results</button>
-                <button id="similarTab" class="tab-btn flex-1 py-3.5 text-[13px] font-medium text-gray-600 transition">Similar Images</button>
+                <button id="similarTab" class="tab-btn flex-1 py-3.5 text-[13px] font-medium text-gray-600 transition">Google Lens</button>
             </div>
 
             <!-- Results Content -->
@@ -695,25 +695,25 @@
                 </div>
             </div>
 
-            <!-- Similar Images Content -->
+            <!-- Google Lens Content -->
             <div id="similarContent" class="p-5 hidden">
                 <div id="noSimilarImages" class="text-center py-16">
                     <div class="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center" style="background: rgba(19, 25, 33, 0.8); border: 1px solid #1e2a3a;">
                         <i class="fas fa-images text-xl text-gray-600"></i>
                     </div>
-                    <p class="text-sm text-gray-500 mb-1">No reverse search yet</p>
-                    <p class="text-xs text-gray-600 mb-5">Results appear after analysis</p>
+                    <p class="text-sm text-gray-500 mb-1">Open Google Lens manually</p>
+                    <p class="text-xs text-gray-600 mb-5">Google Lens does not accept local files through this page automatically.</p>
                     <button id="performReverseSearch" class="btn-primary hidden">
-                        <i class="fab fa-google text-xs mr-2"></i><span>Search with Google Lens</span>
+                        <i class="fab fa-google text-xs mr-2"></i><span>Open Google Lens</span>
                     </button>
                 </div>
                 <div id="similarImagesResults" class="space-y-4 hidden">
                     <div class="glass-card p-4">
                         <h3 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
                             <i class="fab fa-google text-primary text-xs"></i>
-                            Reverse Image Search
+                            Google Lens
                         </h3>
-                        <p class="text-xs text-gray-500 mb-3">Find similar images and sources</p>
+                        <p class="text-xs text-gray-500 mb-3">Open Google Lens and upload the image there.</p>
                         <button id="openGoogleLens" class="btn-primary w-full flex items-center justify-center gap-2 text-[13px]">
                             <i class="fas fa-external-link-alt text-[10px]"></i><span>Open in Google Lens</span>
                         </button>
@@ -857,7 +857,7 @@
 
         function openGoogleReverseSearch() {
             window.open('https://lens.google.com/', '_blank');
-            showToast('Google Lens opened in new tab');
+            showToast('Google Lens opened. Upload the image there to continue.');
         }
 
         // ── Processing Status Animation ──
@@ -912,6 +912,7 @@
                         body: JSON.stringify({
                             image: e.target.result,
                             api_key: apiKey,
+                            mime_type: file.type || null,
                             context: contextValue || null,
                             guess: guessValue || null
                         })
@@ -942,6 +943,7 @@
             document.getElementById('noResults').classList.add('hidden');
             document.getElementById('resultsData').classList.remove('hidden');
             document.getElementById('mapControls').style.display = 'flex';
+            document.getElementById('noSimilarImages').classList.add('hidden');
             document.getElementById('performReverseSearch').classList.remove('hidden');
             document.getElementById('similarImagesResults').classList.remove('hidden');
 
@@ -964,12 +966,14 @@
             if (locations.length > 0) {
                 const loc = locations[0];
                 const coords = loc.coordinates || { latitude: 0, longitude: 0 };
-                currentLocationLat = coords.latitude;
-                currentLocationLng = coords.longitude;
+                const latitude = toFiniteNumber(coords.latitude);
+                const longitude = toFiniteNumber(coords.longitude);
+                currentLocationLat = latitude;
+                currentLocationLng = longitude;
 
                 document.getElementById('aiExplanation').innerHTML = formatAnalysis(interpretation);
-                document.getElementById('latitude').textContent = coords.latitude.toFixed(6);
-                document.getElementById('longitude').textContent = coords.longitude.toFixed(6);
+                document.getElementById('latitude').textContent = latitude.toFixed(6);
+                document.getElementById('longitude').textContent = longitude.toFixed(6);
                 document.getElementById('city').textContent = loc.city || 'Unknown';
                 document.getElementById('country').textContent = loc.country || 'Unknown';
 
@@ -980,16 +984,16 @@
                 badge.className = `text-[10px] font-mono font-medium px-2.5 py-1 rounded-full tracking-wide uppercase badge-${conf}`;
 
                 // Copy buttons
-                document.getElementById('latitude').nextElementSibling.onclick = () => copyToClipboard(coords.latitude.toFixed(6));
-                document.getElementById('longitude').nextElementSibling.onclick = () => copyToClipboard(coords.longitude.toFixed(6));
+                document.getElementById('latitude').nextElementSibling.onclick = () => copyToClipboard(latitude.toFixed(6));
+                document.getElementById('longitude').nextElementSibling.onclick = () => copyToClipboard(longitude.toFixed(6));
 
                 // Map marker
                 const title = `${loc.city || 'Unknown'}, ${loc.country || 'Unknown'}`;
                 if (marker) map.removeLayer(marker);
 
-                marker = L.marker([coords.latitude, coords.longitude])
+                marker = L.marker([latitude, longitude])
                     .addTo(map)
-                    .bindPopup(`<strong style="font-size:13px;">${title}</strong><br><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b9cb8;">${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}</span><br><a href="https://www.google.com/maps?q=${coords.latitude},${coords.longitude}" target="_blank" style="font-size:11px;">Open in Google Maps &rarr;</a>`)
+                    .bindPopup(`<strong style="font-size:13px;">${escapeHtml(title)}</strong><br><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b9cb8;">${latitude.toFixed(6)}, ${longitude.toFixed(6)}</span><br><a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" style="font-size:11px;">Open in Google Maps &rarr;</a>`)
                     .openPopup();
 
                 const el = marker.getElement();
@@ -998,7 +1002,7 @@
                     el.addEventListener('animationend', () => el.style.animation = '', { once: true });
                 }
 
-                map.setView([coords.latitude, coords.longitude], 15);
+                map.setView([latitude, longitude], 15);
 
                 // Staggered card reveal
                 requestAnimationFrame(() => {
@@ -1028,8 +1032,10 @@
             if (!locations.length) { showToast('No location data'); return; }
             const loc = locations[0];
             const coords = loc.coordinates || { latitude: 0, longitude: 0 };
+            const latitude = toFiniteNumber(coords.latitude);
+            const longitude = toFiniteNumber(coords.longitude);
 
-            const report = `GeoIntel Location Analysis Report\n${'='.repeat(36)}\nGenerated: ${new Date().toLocaleString()}\n\nAI ANALYSIS\n${'-'.repeat(11)}\n${interpretation}\n\nLOCATION DETAILS\n${'-'.repeat(16)}\nLatitude: ${coords.latitude.toFixed(6)}\nLongitude: ${coords.longitude.toFixed(6)}\nCity: ${loc.city || 'Unknown'}\nCountry: ${loc.country || 'Unknown'}\nConfidence: ${loc.confidence || 'Medium'}\n\nCOORDINATES\n${'-'.repeat(11)}\nDecimal: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}\nGoogle Maps: https://www.google.com/maps?q=${coords.latitude},${coords.longitude}\n\nMETADATA\n${'-'.repeat(8)}\nDate: ${new Date().toISOString()}\nSource: GeoIntel AI Location Intelligence`;
+            const report = `GeoIntel Location Analysis Report\n${'='.repeat(36)}\nGenerated: ${new Date().toLocaleString()}\n\nAI ANALYSIS\n${'-'.repeat(11)}\n${interpretation}\n\nLOCATION DETAILS\n${'-'.repeat(16)}\nLatitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}\nCity: ${loc.city || 'Unknown'}\nCountry: ${loc.country || 'Unknown'}\nConfidence: ${loc.confidence || 'Medium'}\n\nCOORDINATES\n${'-'.repeat(11)}\nDecimal: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nGoogle Maps: https://www.google.com/maps?q=${latitude},${longitude}\n\nMETADATA\n${'-'.repeat(8)}\nDate: ${new Date().toISOString()}\nSource: GeoIntel AI Location Intelligence`;
 
             const blob = new Blob([report], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1056,7 +1062,7 @@
         function formatAnalysis(text) {
             if (!text) return '';
             // Sanitize HTML entities to prevent XSS
-            const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const safe = escapeHtml(text);
             // Split on existing newlines or sentence boundaries for readability
             const lines = safe.split(/\n+/).filter(l => l.trim());
             if (lines.length > 1) {
@@ -1072,6 +1078,20 @@
         }
 
         // ── Utility ──
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function toFiniteNumber(value, fallback = 0) {
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue) ? numericValue : fallback;
+        }
+
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
         }

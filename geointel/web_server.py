@@ -1,15 +1,14 @@
 import os
 import base64
-import binascii
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple
-from flask import Flask, request, jsonify, send_from_directory
+from typing import Optional
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+from .config import AVAILABLE_MODELS
 from .geointel import GeoIntel
-from .exceptions import GeoIntelError, InvalidImageError
-from .image_processor import ImageProcessor
+from .exceptions import GeoIntelError
 from .logger import logger
 
 
@@ -32,33 +31,6 @@ def create_app() -> Flask:
 app = create_app()
 
 
-def decode_uploaded_image(
-    image_data: str,
-    mime_type: Optional[str] = None
-) -> Tuple[str, bytes]:
-    if not isinstance(image_data, str):
-        raise InvalidImageError("Image data must be a base64 string")
-
-    if image_data.startswith(("http://", "https://")):
-        raise InvalidImageError(
-            "Image URLs are not supported in web mode. Upload the image file directly."
-        )
-
-    detected_mime_type, encoded_image_data = ImageProcessor.parse_data_url(image_data)
-    normalized_mime_type = detected_mime_type or ImageProcessor.normalize_mime_type(mime_type)
-    if not normalized_mime_type:
-        raise InvalidImageError(
-            "Unsupported image format. Upload a JPEG, PNG, WebP, or GIF image."
-        )
-
-    try:
-        image_bytes = base64.b64decode(encoded_image_data, validate=True)
-    except (binascii.Error, ValueError) as exc:
-        raise InvalidImageError(f"Invalid image data: {exc}") from exc
-
-    return normalized_mime_type, image_bytes
-
-
 @app.route('/')
 def index():
     return send_from_directory(app.template_folder, 'index.html')
@@ -74,9 +46,13 @@ def health_check():
     return jsonify({'status': 'ok', 'message': 'GeoIntel Web API is running'})
 
 
+@app.route('/api/models', methods=['GET'])
+def list_models():
+    return jsonify({'models': AVAILABLE_MODELS})
+
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze_image():
-    temp_file_path = None
     try:
         # Parse request data
         data = request.get_json()
@@ -90,15 +66,15 @@ def analyze_image():
         # Extract parameters
         image_data = data.get('image')
         api_key = data.get('api_key')
+        model = data.get('model')
         context_info = data.get('context')
         location_guess = data.get('guess')
-        mime_type = data.get('mime_type')
 
         # Validate required fields
         if not image_data:
             return jsonify({
                 'error': 'Image data required',
-                'details': 'Provide a base64-encoded image upload'
+                'details': 'Provide either base64 image data or image URL'
             }), 400
 
         if not api_key:
@@ -109,32 +85,62 @@ def analyze_image():
 
         logger.info("Processing image analysis request")
 
-        upload_mime_type, image_bytes = decode_uploaded_image(
-            image_data=image_data,
-            mime_type=mime_type,
-        )
+        # Determine if image_data is URL or base64
+        if image_data.startswith(('http://', 'https://')):
+            image_path = image_data
+        else:
+            # Save base64 image to temporary file
+            try:
+                # Remove data URI prefix if present and detect format
+                suffix = '.jpg'
+                if ',' in image_data:
+                    header, image_data = image_data.split(',', 1)
+                    # Extract MIME type from data URI (e.g. data:image/png;base64)
+                    if 'image/png' in header:
+                        suffix = '.png'
+                    elif 'image/webp' in header:
+                        suffix = '.webp'
+                    elif 'image/gif' in header:
+                        suffix = '.gif'
 
-        temp_file = tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=ImageProcessor.get_file_suffix(upload_mime_type),
-            dir=app.config['UPLOAD_FOLDER']
-        )
-        temp_file.write(image_bytes)
-        temp_file.close()
+                image_bytes = base64.b64decode(image_data)
 
-        temp_file_path = temp_file.name
-        logger.info(f"Saved uploaded image to: {temp_file_path}")
+                # Create temporary file with correct extension
+                temp_file = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=suffix,
+                    dir=app.config['UPLOAD_FOLDER']
+                )
+                temp_file.write(image_bytes)
+                temp_file.close()
 
-        # Initialize GeoIntel with provided API key
-        geointel = GeoIntel(api_key=api_key)
+                image_path = temp_file.name
+                logger.info(f"Saved uploaded image to: {image_path}")
+
+            except Exception as e:
+                logger.error(f"Failed to process image data: {e}")
+                return jsonify({
+                    'error': 'Invalid image data',
+                    'details': str(e)
+                }), 400
+
+        # Initialize GeoIntel with provided API key and model
+        geointel = GeoIntel(api_key=api_key, model=model)
 
         # Perform analysis
         result = geointel.locate(
-            image_path=temp_file_path,
+            image_path=image_path,
             context_info=context_info,
-            location_guess=location_guess,
-            mime_type_override=upload_mime_type,
+            location_guess=location_guess
         )
+
+        # Clean up temporary file if created
+        if not image_data.startswith(('http://', 'https://')):
+            try:
+                os.unlink(image_path)
+                logger.info(f"Cleaned up temporary file: {image_path}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temporary file: {e}")
 
         # Check for errors in result
         if 'error' in result:
@@ -156,13 +162,34 @@ def analyze_image():
             'error': 'Internal server error',
             'details': str(e)
         }), 500
-    finally:
-        if temp_file_path:
-            try:
-                os.unlink(temp_file_path)
-                logger.info(f"Cleaned up temporary file: {temp_file_path}")
-            except OSError as e:
-                logger.warning(f"Failed to clean up temporary file: {e}")
+
+
+@app.route('/api/reverse-image-search', methods=['POST'])
+def reverse_image_search():
+    try:
+        data = request.get_json()
+
+        if not data or 'image' not in data:
+            return jsonify({
+                'error': 'Image data required'
+            }), 400
+
+        # For Google reverse image search, we'll return the URL pattern
+        # The client can open this in a new tab
+        # Google Images supports searching by uploading, but we'll provide
+        # the lens URL pattern that can be used
+
+        return jsonify({
+            'search_url': 'https://lens.google.com/uploadbyurl',
+            'message': 'Upload the image to Google Lens for reverse image search'
+        })
+
+    except Exception as e:
+        logger.error(f"Error in reverse image search: {e}")
+        return jsonify({
+            'error': 'Failed to generate search URL',
+            'details': str(e)
+        }), 500
 
 
 @app.errorhandler(413)

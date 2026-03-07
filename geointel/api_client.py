@@ -5,6 +5,7 @@ import requests
 
 from .config import (
     API_TIMEOUT,
+    AVAILABLE_MODELS,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_K,
     DEFAULT_TOP_P,
@@ -18,7 +19,7 @@ from .logger import logger
 
 
 class GeminiClient:
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get(ENV_API_KEY)
         if not self.api_key or self.api_key == "your_api_key_here":
             raise APIKeyError(
@@ -27,7 +28,11 @@ class GeminiClient:
             )
 
         self.base_url = GEMINI_API_BASE_URL
-        self.model = GEMINI_MODEL
+        # Validate model against allowlist
+        if model and model in AVAILABLE_MODELS:
+            self.model = model
+        else:
+            self.model = GEMINI_MODEL
         logger.info(f"Initialized Gemini client with model: {self.model}")
 
     def _extract_response_text(self, response_data: Dict[str, Any]) -> str:
@@ -156,8 +161,14 @@ class GeminiClient:
             # Check for HTTP errors
             if response.status_code != 200:
                 error_msg = f"API request failed with status {response.status_code}"
-                logger.error(f"{error_msg}: {response.text}")
-                raise APIError(f"{error_msg}: {response.text}")
+                # Extract structured error message without exposing raw response
+                try:
+                    err_data = response.json()
+                    detail = err_data.get("error", {}).get("message", "Unknown error")
+                except Exception:
+                    detail = "Could not parse error response"
+                logger.error(f"{error_msg}: {detail}")
+                raise APIError(f"{error_msg}: {detail}")
 
             # Parse and extract response
             response_data = response.json()

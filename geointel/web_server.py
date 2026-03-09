@@ -12,14 +12,19 @@ from .exceptions import GeoIntelError
 from .logger import logger
 
 
-def create_app() -> Flask:
-   
+def create_app(host: str = '127.0.0.1', port: int = 5000) -> Flask:
+
     app = Flask(
         __name__,
         template_folder=str(Path(__file__).parent.parent / "geointel_ui_template"),
         static_folder=str(Path(__file__).parent.parent / "geointel_ui_template")
     )
-    CORS(app, origins=["http://127.0.0.1:5000", "http://localhost:5000"])
+    allowed_origins = [
+        f"http://{host}:{port}",
+        f"http://localhost:{port}",
+        f"http://127.0.0.1:{port}",
+    ]
+    CORS(app, origins=allowed_origins)
 
     # Configure app
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -72,7 +77,7 @@ def analyze_image():
 
         # Extract parameters
         image_data = data.get('image')
-        api_key = data.get('api_key')
+        api_key = request.headers.get('X-Api-Key') or data.get('api_key')
         model = data.get('model')
         context_raw = data.get('context')
         guess_raw = data.get('guess')
@@ -179,7 +184,7 @@ def analyze_image():
         logger.error(f"Unexpected error in analyze endpoint: {e}", exc_info=True)
         return jsonify({
             'error': 'Internal server error',
-            'details': str(e)
+            'details': 'An unexpected error occurred. Please try again.'
         }), 500
 
 
@@ -207,7 +212,7 @@ def reverse_image_search():
         logger.error(f"Error in reverse image search: {e}")
         return jsonify({
             'error': 'Failed to generate search URL',
-            'details': str(e)
+            'details': 'An unexpected error occurred. Please try again.'
         }), 500
 
 
@@ -229,13 +234,21 @@ def not_found(e):
 
 @app.errorhandler(500)
 def internal_error(e):
+    logger.error(f"Internal server error: {e}")
     return jsonify({
         'error': 'Internal server error',
-        'details': 'An unexpected error occurred'
+        'details': 'An unexpected error occurred.'
     }), 500
 
 
-def run_server(host: str = '127.0.0.1', port: int = 5000, debug: bool = False) -> None:
+def run_server(host: str = '127.0.0.1', port: int = 5000) -> None:
+    # Re-apply CORS with the actual host/port being used
+    allowed_origins = [
+        f"http://{host}:{port}",
+        f"http://localhost:{port}",
+        f"http://127.0.0.1:{port}",
+    ]
+    CORS(app, origins=allowed_origins)
     logger.info(f"Starting GeoIntel web server on http://{host}:{port}")
     print(f"\n{'='*60}")
     print(f"  GeoIntel Web Interface")
@@ -245,7 +258,7 @@ def run_server(host: str = '127.0.0.1', port: int = 5000, debug: bool = False) -
     print(f"{'='*60}\n")
 
     try:
-        app.run(host=host, port=port, debug=debug)
+        app.run(host=host, port=port, debug=False)  # Always force debug=False in production
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
         print("\n\nServer stopped.")
@@ -256,4 +269,4 @@ def run_server(host: str = '127.0.0.1', port: int = 5000, debug: bool = False) -
 
 
 if __name__ == '__main__':
-    run_server(debug=False)
+    run_server()

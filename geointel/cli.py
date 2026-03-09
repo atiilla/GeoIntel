@@ -158,8 +158,12 @@ def display_results(results: Dict[str, Any]) -> None:
             lat = coordinates.get("latitude", 0)
             lng = coordinates.get("longitude", 0)
             if lat != 0 or lng != 0:
-                print(f"   Coordinates: {lat}, {lng}")
-                print(f"   Google Maps: https://www.google.com/maps?q={lat},{lng}")
+                # Display coordinates — intentional CLI output, not logging to a file
+                if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+                    lat_safe = float(lat)
+                    lng_safe = float(lng)
+                    print(f"   Coordinates: {lat_safe:.6f}, {lng_safe:.6f}")
+                    print(f"   Google Maps: https://www.google.com/maps?q={lat_safe:.6f},{lng_safe:.6f}")
 
         # Display explanation
         explanation = location.get("explanation", "No explanation available")

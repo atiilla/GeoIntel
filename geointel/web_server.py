@@ -133,7 +133,7 @@ def analyze_image():
                 logger.error(f"Failed to process image data: {e}")
                 return jsonify({
                     'error': 'Invalid image data',
-                    'details': str(e)
+                    'details': 'The provided image data could not be decoded. Please provide a valid base64-encoded image.'
                 }), 400
 
             temp_path = None
@@ -176,8 +176,7 @@ def analyze_image():
     except GeoIntelError as e:
         logger.error(f"GeoIntel error: {e}")
         return jsonify({
-            'error': str(e),
-            'details': type(e).__name__
+            'error': 'An error occurred while processing the request.'
         }), 400
 
     except Exception as e:

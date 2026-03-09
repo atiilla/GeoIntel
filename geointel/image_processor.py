@@ -1,7 +1,7 @@
 import base64
 import mimetypes
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple
 from urllib.parse import urlparse
 
 import requests

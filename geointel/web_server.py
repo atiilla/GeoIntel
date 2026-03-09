@@ -1,9 +1,9 @@
 import os
 import base64
+import re
 import tempfile
 from pathlib import Path
-from typing import Optional
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from .config import AVAILABLE_MODELS
@@ -19,7 +19,7 @@ def create_app() -> Flask:
         template_folder=str(Path(__file__).parent.parent / "geointel_ui_template"),
         static_folder=str(Path(__file__).parent.parent / "geointel_ui_template")
     )
-    CORS(app)
+    CORS(app, origins=["http://127.0.0.1:5000", "http://localhost:5000"])
 
     # Configure app
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -30,14 +30,21 @@ def create_app() -> Flask:
 
 app = create_app()
 
+MAX_CONTEXT_LENGTH = 500
+
 
 @app.route('/')
 def index():
     return send_from_directory(app.template_folder, 'index.html')
 
 
+ALLOWED_STATIC_EXTENSIONS = re.compile(r'\.(html|css|js|ico|png|jpg|jpeg|svg|woff|woff2|ttf|map)$', re.IGNORECASE)
+
+
 @app.route('/<path:filename>')
 def serve_static(filename):
+    if not ALLOWED_STATIC_EXTENSIONS.search(filename):
+        return jsonify({'error': 'Not found'}), 404
     return send_from_directory(app.template_folder, filename)
 
 
@@ -67,8 +74,10 @@ def analyze_image():
         image_data = data.get('image')
         api_key = data.get('api_key')
         model = data.get('model')
-        context_info = data.get('context')
-        location_guess = data.get('guess')
+        context_raw = data.get('context')
+        guess_raw = data.get('guess')
+        context_info = str(context_raw)[:MAX_CONTEXT_LENGTH] if context_raw else None
+        location_guess = str(guess_raw)[:MAX_CONTEXT_LENGTH] if guess_raw else None
 
         # Validate required fields
         if not image_data:
@@ -88,6 +97,16 @@ def analyze_image():
         # Determine if image_data is URL or base64
         if image_data.startswith(('http://', 'https://')):
             image_path = image_data
+
+            # Initialize GeoIntel with provided API key and model
+            geointel = GeoIntel(api_key=api_key, model=model)
+
+            # Perform analysis
+            result = geointel.locate(
+                image_path=image_path,
+                context_info=context_info,
+                location_guess=location_guess
+            )
         else:
             # Save base64 image to temporary file
             try:
@@ -105,18 +124,6 @@ def analyze_image():
 
                 image_bytes = base64.b64decode(image_data)
 
-                # Create temporary file with correct extension
-                temp_file = tempfile.NamedTemporaryFile(
-                    delete=False,
-                    suffix=suffix,
-                    dir=app.config['UPLOAD_FOLDER']
-                )
-                temp_file.write(image_bytes)
-                temp_file.close()
-
-                image_path = temp_file.name
-                logger.info(f"Saved uploaded image to: {image_path}")
-
             except Exception as e:
                 logger.error(f"Failed to process image data: {e}")
                 return jsonify({
@@ -124,23 +131,35 @@ def analyze_image():
                     'details': str(e)
                 }), 400
 
-        # Initialize GeoIntel with provided API key and model
-        geointel = GeoIntel(api_key=api_key, model=model)
-
-        # Perform analysis
-        result = geointel.locate(
-            image_path=image_path,
-            context_info=context_info,
-            location_guess=location_guess
-        )
-
-        # Clean up temporary file if created
-        if not image_data.startswith(('http://', 'https://')):
+            temp_path = None
             try:
-                os.unlink(image_path)
-                logger.info(f"Cleaned up temporary file: {image_path}")
-            except Exception as e:
-                logger.warning(f"Failed to clean up temporary file: {e}")
+                with tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=suffix,
+                    dir=app.config['UPLOAD_FOLDER']
+                ) as f:
+                    f.write(image_bytes)
+                    temp_path = f.name
+                logger.info(f"Saved uploaded image to: {temp_path}")
+
+                image_path = temp_path
+
+                # Initialize GeoIntel with provided API key and model
+                geointel = GeoIntel(api_key=api_key, model=model)
+
+                # Perform analysis
+                result = geointel.locate(
+                    image_path=image_path,
+                    context_info=context_info,
+                    location_guess=location_guess
+                )
+            finally:
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.unlink(temp_path)
+                        logger.info(f"Cleaned up temporary file: {temp_path}")
+                    except OSError as e:
+                        logger.warning(f"Failed to clean up temporary file {temp_path}: {e}")
 
         # Check for errors in result
         if 'error' in result:
@@ -237,4 +256,4 @@ def run_server(host: str = '127.0.0.1', port: int = 5000, debug: bool = False) -
 
 
 if __name__ == '__main__':
-    run_server(debug=True)
+    run_server(debug=False)

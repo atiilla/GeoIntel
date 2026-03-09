@@ -44,16 +44,18 @@ class GeoIntel:
             return result
 
         except GeoIntelError as e:
+            # Log detailed error on the server, but avoid exposing internal messages to clients
             error_msg = f"{type(e).__name__}: {str(e)}"
             logger.error(error_msg)
             return {
-                "error": str(e),
+                "error": "GeoIntel processing error",
                 "details": type(e).__name__
             }
         except Exception as e:
+            # Log unexpected errors with full stack trace, but return a generic message to clients
             error_msg = f"Unexpected error: {str(e)}"
             logger.error(error_msg, exc_info=True)
             return {
                 "error": "An unexpected error occurred",
-                "details": str(e)
+                "details": "Internal processing error"
             }

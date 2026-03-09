@@ -36,7 +36,7 @@ class GeminiClient:
         logger.info(f"Initialized Gemini client with model: {self.model}")
 
     def _build_endpoint_url(self) -> str:
-        return f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
+        return f"{self.base_url}/{self.model}:generateContent"
 
     def _build_request_payload(
         self,
@@ -68,7 +68,8 @@ class GeminiClient:
 
     def _get_request_headers(self) -> Dict[str, str]:
         return {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
         }
 
     def _extract_response_text(self, response_data: Dict[str, Any]) -> str:
@@ -197,4 +198,4 @@ class GeminiClient:
             raise APIError(f"API request failed: {e}")
         except Exception as e:
             logger.error(f"Unexpected error during API call: {e}")
-            raise APIError(f"Unexpected error: {e}")
+            raise APIError(f"Unexpected error: {e}") from e

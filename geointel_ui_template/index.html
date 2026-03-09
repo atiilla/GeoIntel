@@ -500,7 +500,7 @@
 
             <p class="mt-4 text-[11px] text-gray-600 flex items-center gap-1.5">
                 <i class="fas fa-lock text-[9px]"></i>
-                Stored locally in your browser. Never leaves your device.
+                Stored in session only. Sent securely via request header.
             </p>
         </div>
     </div>
@@ -844,8 +844,8 @@
         }
 
         // ── API Key & Model ──
-        function getStoredApiKey() { return localStorage.getItem(STORAGE_KEYS.API_KEY); }
-        function storeApiKey(key) { localStorage.setItem(STORAGE_KEYS.API_KEY, key); updateApiKeyIndicator(); }
+        function getStoredApiKey() { return sessionStorage.getItem(STORAGE_KEYS.API_KEY); }
+        function storeApiKey(key) { sessionStorage.setItem(STORAGE_KEYS.API_KEY, key); updateApiKeyIndicator(); }
         function getSelectedModel() { return localStorage.getItem(STORAGE_KEYS.MODEL) || 'gemini-3-flash-preview'; }
         function storeModel(model) { localStorage.setItem(STORAGE_KEYS.MODEL, model); }
 
@@ -932,10 +932,12 @@
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/analyze`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Api-Key': apiKey
+                        },
                         body: JSON.stringify({
                             image: e.target.result,
-                            api_key: apiKey,
                             model: getSelectedModel(),
                             context: contextValue || null,
                             guess: guessValue || null
@@ -992,6 +994,7 @@
                 currentLocationLat = coords.latitude;
                 currentLocationLng = coords.longitude;
 
+                // Safe: formatAnalysis() uses escapeHtml() to produce pre-escaped HTML
                 document.getElementById('aiExplanation').innerHTML = formatAnalysis(interpretation);
                 document.getElementById('latitude').textContent = coords.latitude.toFixed(6);
                 document.getElementById('longitude').textContent = coords.longitude.toFixed(6);
@@ -1078,10 +1081,16 @@
         document.getElementById('mapTypeSelector').addEventListener('change', (e) => setTileLayer(e.target.value));
 
         // ── Format Analysis Text ──
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         function formatAnalysis(text) {
             if (!text) return '';
-            // Sanitize HTML entities to prevent XSS
-            const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            // Use DOM-based escaping to prevent XSS
+            const safe = escapeHtml(text);
             // Split on existing newlines or sentence boundaries for readability
             const lines = safe.split(/\n+/).filter(l => l.trim());
             if (lines.length > 1) {

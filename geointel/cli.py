@@ -196,7 +196,7 @@ def main() -> None:
         print(f"\n{Colors.CYAN}Starting GeoIntel Web Interface...{Colors.RESET}")
         try:
             from .web_server import run_server
-            run_server(host=args.host, port=args.port, debug=False)
+            run_server(host=args.host, port=args.port)
         except ImportError as e:
             print(f"\n{Colors.RED}Error: Flask is required for web interface{Colors.RESET}")
             print(f"Install it with: pip install flask flask-cors")

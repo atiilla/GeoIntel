@@ -844,8 +844,10 @@
         }
 
         // ── API Key & Model ──
-        function getStoredApiKey() { return sessionStorage.getItem(STORAGE_KEYS.API_KEY); }
-        function storeApiKey(key) { sessionStorage.setItem(STORAGE_KEYS.API_KEY, key); updateApiKeyIndicator(); }
+        // Store API key only in memory to avoid clear-text persistence in web storage.
+        let inMemoryApiKey = null;
+        function getStoredApiKey() { return inMemoryApiKey; }
+        function storeApiKey(key) { inMemoryApiKey = key; updateApiKeyIndicator(); }
         function getSelectedModel() { return localStorage.getItem(STORAGE_KEYS.MODEL) || 'gemini-3-flash-preview'; }
         function storeModel(model) { localStorage.setItem(STORAGE_KEYS.MODEL, model); }
 

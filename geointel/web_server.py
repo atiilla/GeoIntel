@@ -179,7 +179,8 @@ def analyze_image():
     except GeoIntelError as e:
         logger.error(f"GeoIntel error: {e}")
         return jsonify({
-            'error': str(e)
+            'error': 'GeoIntel processing error',
+            'details': 'A problem occurred while processing your request. Please check your input and try again.'
         }), 400
 
     except Exception as e:

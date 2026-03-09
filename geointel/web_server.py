@@ -168,7 +168,10 @@ def analyze_image():
 
         # Check for errors in result
         if 'error' in result:
-            return jsonify(result), 400
+            # Do not trust or expose internal error details directly to the client
+            return jsonify({
+                'error': 'Request could not be processed'
+            }), 400
 
         logger.info("Image analysis completed successfully")
         return jsonify(result)

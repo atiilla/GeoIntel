@@ -47,6 +47,7 @@ class GeoIntel:
             # Log detailed error on the server, but avoid exposing internal messages to clients
             error_msg = f"{type(e).__name__}: {str(e)}"
             logger.error(error_msg)
+            # Return a generic, user-safe error message without internal details
             return {
                 "error": "GeoIntel processing error",
                 "details": type(e).__name__
@@ -55,6 +56,7 @@ class GeoIntel:
             # Log unexpected errors with full stack trace, but return a generic message to clients
             error_msg = f"Unexpected error: {str(e)}"
             logger.error(error_msg, exc_info=True)
+            # Return a generic message without including the raw exception string
             return {
                 "error": "An unexpected error occurred",
                 "details": "Internal processing error"
